@@ -1151,7 +1151,9 @@ select option{background:#1a1815}
 
 
 
+
 <script>
+
 
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_zQX1ZRnLsli58ANcFhUtEcHVi-7yQ9FBcG90seMncn6lLprG1kPL0suv96GZ6dmB/exec';
@@ -1773,6 +1775,23 @@ function populateDropdowns() {
   });
 }
 
+
+// ── Double-submit prevention ──
+let _submitting = false;
+function btnLock(btn) {
+  if(_submitting) { toast('Please wait, saving…','info'); return false; }
+  _submitting = true;
+  if(btn) { btn.disabled=true; btn._orig=btn.innerHTML; btn.innerHTML='⏳ Saving…'; }
+  return true;
+}
+function btnUnlock(btn) {
+  _submitting = false;
+  if(btn) { btn.disabled=false; btn.innerHTML=btn._orig||'Save'; }
+}
+function getSubmitBtn(modalId) {
+  return document.querySelector('#'+modalId+' .btn-primary, #'+modalId+' .btn-success');
+}
+
 function openModal(id) {
   populateDropdowns();
   const el=document.getElementById(id);
@@ -2368,6 +2387,7 @@ function renderDispatch() {
 }
 
 async function saveDispatch() {
+  const _sbtn=getSubmitBtn('m-dispatch'); if(!btnLock(_sbtn)) return;
   const distId=document.getElementById('disp-dist').value;
   const date=document.getElementById('disp-date').value;
   const inv=document.getElementById('disp-inv').value.trim();
@@ -2407,6 +2427,7 @@ async function saveDispatch() {
   }
   save(); closeModal('m-dispatch'); renderDispatch();
   toast(`✅ Dispatch saved — ${items.length} SKU(s), ${items.reduce((s,i)=>s+i.qty,0)} units to ${dist?.name}`);
+  btnUnlock(_sbtn);
 }
 
 function renderWSDDispatch() {
@@ -2631,20 +2652,23 @@ function removeBMBOMRow(s1Id, idx) {
 
 function saveBMBOMInline(s1Id) {
   if(!S.boms) S.boms={};
-  const bom = S.boms[s1Id]||[];
-  const allIng = [...(S.rmItems||[]).map(i=>({id:i.id,label:i.name})),...(S.ppItems||[]).map(i=>({id:i.id,label:i.name}))];
-  const newBOM = bom.map((line,i) => {
-    const selEl = document.getElementById('bmbom-'+s1Id+'-item-'+i);
-    const qtyEl = document.getElementById('bmbom-'+s1Id+'-qty-'+i);
-    const parts = (selEl?.value||line.itemId+'|'+line.itemType).split('|');
-    const itemId = parts[0], itemType = parts[1];
-    const qty = parseFloat(qtyEl?.value)||line.qtyPerKg;
-    const label = allIng.find(i=>i.id===itemId)?.label||line.label;
-    return {itemId,itemType,label,qtyPerKg:qty};
-  }).filter(l=>l.qtyPerKg>0);
+  const allIng = [...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
+                  ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
+  const newBOM = [];
+  document.querySelectorAll('#bmbom-tbody-'+s1Id+' tr').forEach(tr => {
+    const selEl = tr.querySelector('select');
+    const qtyEl = tr.querySelector('input[type="number"]');
+    if(!selEl||!qtyEl) return;
+    const parts = (selEl.value||'').split('|');
+    const itemId=parts[0], itemType=parts[1];
+    const qty = parseFloat(qtyEl.value)||0;
+    if(!itemId||qty<=0) return;
+    const label = allIng.find(x=>x.id===itemId)?.label||itemId;
+    newBOM.push({itemId,itemType,label,qtyPerKg:qty});
+  });
   S.boms[s1Id] = newBOM;
   save(); renderSettBOM();
-  toast('BOM saved for '+(S.sfg1Items||[]).find(i=>i.id===s1Id)?.name);
+  toast('BOM saved — '+newBOM.length+' ingredient(s) for '+(S.sfg1Items||[]).find(i=>i.id===s1Id)?.name);
 }
 
 function renderSettS1T(){
@@ -3267,6 +3291,7 @@ function updatePPLoss() {
 
 // ── Updated savePPProd — handles BOM inputs ──
 async function savePPProd() {
+  const _sbtn=getSubmitBtn('m-pp-prod'); if(!btnLock(_sbtn)) return;
   const itemId = document.getElementById('pp-out').value;
   const outQty = parseFloat(document.getElementById('pp-out-qty').value);
   const date = document.getElementById('pp-date').value;
@@ -3331,6 +3356,7 @@ async function savePPProd() {
   await addTxn({ts, type:'powder-prod', stage:'Powder/Paste', itemId, itemName:item.name, qty:outQty, date, batchCode, rmUsed, totalInput:totalIn, processLoss:loss, remarks});
   save(); closeModal('m-pp-prod'); renderPP(); renderProdTab('pp');
   toast('✅ '+item.name+': '+batchCode+' | '+outQty+' kg out | Loss: '+loss+' kg');
+  btnUnlock(_sbtn);
 }
 
 // ── Updated updateBMBOM — add loss tracking ──
@@ -3377,6 +3403,7 @@ function updateBMLoss() {
 
 // ── Updated saveBatchMix — output to BM store + loss tracking ──
 async function saveBatchMix() {
+  const _sbtn=getSubmitBtn('m-batchmix'); if(!btnLock(_sbtn)) return;
   const s1Id = document.getElementById('bm-type').value;
   const size = parseFloat(document.getElementById('bm-size').value);
   const date = document.getElementById('bm-date').value;
@@ -3432,6 +3459,7 @@ async function saveBatchMix() {
   await addTxn({ts, type:'batchmix-prod', stage:'Batch Mix', itemId:bmiId, itemName:(item?.name||'Candy')+' Mix', qty:size, date, batchCode, rmUsed:ingredUsed.join('; '), totalInput:totalIn, processLoss:loss, remarks:(dmgNote?dmgNote+'. ':'')+remarks});
   save(); closeModal('m-batchmix'); renderBM(); renderProdTab('bm');
   toast('✅ Batch Mix: '+batchCode+' | '+size.toFixed(2)+' kg | Loss: '+loss+' kg');
+  btnUnlock(_sbtn);
 }
 
 // ── Updated updateCFPreview + updateCFLoss ──
@@ -3465,6 +3493,7 @@ function updateCFLoss() {
 
 // ── Updated saveCandyForming — handles good + damaged output + loss ──
 async function saveCandyForming() {
+  const _sbtn=getSubmitBtn('m-candy-forming'); if(!btnLock(_sbtn)) return;
   const bmiId = document.getElementById('cf-bmi').value;
   const inputQty = parseFloat(document.getElementById('cf-qty').value);
   const goodQty = parseFloat(document.getElementById('cf-good-qty').value);
@@ -3499,10 +3528,12 @@ async function saveCandyForming() {
   await addTxn({ts, type:'candy-forming', stage:'SFG-1', itemId:s1Id, itemName:s1item.name, qty:goodQty, date, batchCode, rmUsed, bmInput:inputQty, dmgQty, processLoss:loss, remarks});
   save(); closeModal('m-candy-forming'); renderCF(); renderSFG1(); renderProdTab('cf');
   toast('✅ Candy Forming: '+batchCode+' | '+goodQty.toFixed(2)+' kg good'+(dmgQty>0?' | '+dmgQty+' kg damaged':'')+(loss>0?' | '+loss.toFixed(2)+' kg loss':''));
+  btnUnlock(_sbtn);
 }
 
 // ── Updated saveS2Prod — add pouch roll consumption ──
 async function saveS2Prod() {
+  const _sbtn=getSubmitBtn('m-sfg2-prod'); if(!btnLock(_sbtn)) return;
   const s2Id = document.getElementById('s2-type').value;
   const qty = parseFloat(document.getElementById('s2-qty').value);
   const date = document.getElementById('s2-date').value;
@@ -3533,6 +3564,7 @@ async function saveS2Prod() {
   await addTxn({ts, type:'sfg2-prod', stage:'SFG-2', itemId:s2Id, itemName:t.name, qty, date, batchCode, rmUsed, pmUsed:pmNote, remarks});
   save(); closeModal('m-sfg2-prod'); renderSFG2(); renderProdTab('s2');
   toast('✅ Pouch batch: '+batchCode+(pmNote?' | PM: '+pmNote:''));
+  btnUnlock(_sbtn);
 }
 
 // ── Updated saveFGProd — add multi-PM consumption ──
@@ -3553,6 +3585,7 @@ function addFGPMRow() {
 }
 
 async function saveFGProd() {
+  const _sbtn=getSubmitBtn('m-fg-prod'); if(!btnLock(_sbtn)) return;
   const skuId = document.getElementById('fg-sku').value;
   const qty = parseInt(document.getElementById('fg-qty').value);
   const date = document.getElementById('fg-date').value;
@@ -3592,6 +3625,7 @@ async function saveFGProd() {
   await addTxn({ts, type:'fg-prod', stage:'FG', itemId:skuId, itemName:sku.name, itemCode:sku.itemCode, qty, date, batchCode, sfgUsed:sfgUsed||'', pmUsed:pmConsumed.join(', '), remarks});
   save(); closeModal('m-fg-prod'); renderFG(); renderProdTab('fg');
   toast('✅ FG: '+batchCode+' | '+qty+' units'+(pmConsumed.length?' | PM: '+pmConsumed.join(', '):''));
+  btnUnlock(_sbtn);
 }
 
 // ── WS Dispatch ──
@@ -3992,6 +4026,7 @@ function updatePurTotals() {
 }
 
 async function savePurchase() {
+  const _sbtn=getSubmitBtn('m-buy-rmi'); if(!btnLock(_sbtn)) return;
   const supplier = document.getElementById('pur-supplier').value.trim();
   const invoice  = document.getElementById('pur-invoice').value.trim();
   const date     = document.getElementById('pur-date').value;
@@ -4074,9 +4109,42 @@ async function savePurchase() {
   renderRM();
   renderPM();
   toast('✅ Purchase saved — '+items.length+' item(s) | Invoice: ₹'+invTotal.toLocaleString('en-IN',{minimumFractionDigits:2}));
+  btnUnlock(_sbtn);
 }
 
 // ── Updated renderPurchase — richer table ──
+
+// ── Delete entry ──
+async function deleteEntry(ts) {
+  const txn = (S.transactions||[]).find(t=>t.ts===ts);
+  if(!txn) return toast('Entry not found','err');
+  const age = Date.now() - ts;
+  const thirtyMin = 30*60*1000;
+  if(!AUTH.isAdmin && age > thirtyMin)
+    return toast('Only admin can delete entries older than 30 minutes','err');
+  if(AUTH.isAdmin && age > thirtyMin) {
+    if(!confirm('⚠ Admin delete: This will permanently remove this entry and may affect stock/FIFO. Proceed?')) return;
+  } else {
+    if(!confirm('Delete this entry?')) return;
+  }
+  // Remove from transactions
+  S.transactions = (S.transactions||[]).filter(t=>t.ts!==ts);
+  // Note: FIFO reversal is complex — warn admin
+  save();
+  renderPurchase(); renderRM(); renderPP(); renderDispatch();
+  toast('Entry deleted'+(AUTH.isAdmin&&age>thirtyMin?' — Note: FIFO batches not auto-reversed. Check stock manually.':''));
+}
+
+function delBtn(ts) {
+  const age = Date.now() - ts;
+  const thirtyMin = 30*60*1000;
+  const canDelete = AUTH.isAdmin || age <= thirtyMin;
+  if(!canDelete) return '';
+  const cls = AUTH.isAdmin && age > thirtyMin ? 'btn-danger' : 'btn-ghost';
+  const label = AUTH.isAdmin && age > thirtyMin ? '🗑 Delete' : '✕';
+  return `<button class="btn ${cls} btn-sm" onclick="deleteEntry(${ts})">${label}</button>`;
+}
+
 function renderPurchase() {
   document.getElementById('purchase-log').innerHTML = '';
   const btn = document.querySelector('#page-purchase .btn-primary');
@@ -4103,6 +4171,7 @@ function renderPurchase() {
     <td>₹ ${Number(t.itemValue||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
     <td style="color:var(--org)">₹ ${Number(t.allocCost||0).toFixed(2)}</td>
     <td style="color:var(--grn);font-weight:600">₹ ${Number(t.effRate||t.rate||0).toFixed(4)}</td>
+    <td>${delBtn(t.ts)}</td>
   </tr>`).join('');
 }
 
@@ -4160,6 +4229,7 @@ function editPM(id){
   item.name=name.trim(); item.type=type.trim(); item.minStock=parseFloat(min)||0;
   save(); renderSettPM(); toast('✅ Packing material updated');
 }
+
 
 </script>
 </body>
