@@ -540,7 +540,34 @@ select option{background:#1a1815}
 
 
 
+
+<div class="overlay" id="m-movement">
+  <div class="modal" style="width:820px;max-width:97vw">
+    <div class="modal-title" id="movement-title">📋 Movement</div>
+    <div style="margin-bottom:10px"><select class="fs" id="movement-period" style="width:150px" onchange="renderMovement()">
+      <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option><option value="365">Last year</option><option value="0">All time</option>
+    </select></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Batch</th><th>In</th><th>Out</th><th>Reference</th></tr></thead>
+    <tbody id="movement-rows"></tbody></table></div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:10px;display:flex;gap:20px">
+      <span>In: <b id="movement-in">—</b></span><span>Out: <b id="movement-out">—</b></span><span>Net: <b id="movement-net">—</b></span>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-movement')">Close</button></div>
+  </div>
+</div>
+<div class="overlay" id="m-entry-detail">
+  <div class="modal" style="width:540px;max-width:97vw">
+    <div class="modal-title">📄 Entry Detail</div>
+    <div id="entry-detail-body" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-entry-detail')">Close</button>
+      <button class="btn btn-danger btn-sm" id="entry-detail-del" style="display:none">🗑 Delete</button>
+    </div>
+  </div>
+</div>
 <script>
+
 // Kravins Inventory v10.1 — 2026-09-11 17:11
 
 
@@ -996,6 +1023,41 @@ function fifoTable(batches, label) {
 }
 
 
+
+
+function renderRM() {
+  const cardsEl = document.getElementById('rm-cards');
+  const fifoEl  = document.getElementById('rm-fifo');
+  let cards = '';
+  (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
+    const st=rmiStock(i.id), ok=st>=i.minStock;
+    cards+=`<div class="card" style="cursor:pointer" title="Click to view movement"
+      onclick="showMovement('${i.id}','rmItem','${i.name}')">
+      <div class="card-label">Raw Material</div>
+      <div class="card-name">${i.name}</div>
+      <div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(3)}</div>
+      <div class="card-unit">${i.unit} · min ${i.minStock}</div>
+    </div>`;
+  });
+  if(cardsEl) cardsEl.innerHTML = cards || '<div style="color:var(--mu);font-size:12px">No RM items defined</div>';
+  if(fifoEl) {
+    let rows = '';
+    (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
+      const batches = (S.rmiBatches||{})[i.id]||[];
+      batches.forEach((b,idx)=>{
+        rows+=`<tr style="cursor:pointer" onclick="showMovement('${i.id}','rmItem','${i.name}')" title="Click to view movement">
+          <td>${idx===0?'<span class="fifo-tag">NEXT</span>':''}</td>
+          <td>${i.name}</td>
+          <td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td>
+          <td>${b.date}</td>
+          <td><b>${Number(b.qty).toFixed(3)}</b></td>
+          <td><span class="badge badge-ok">Active</span></td>
+        </tr>`;
+      });
+    });
+    fifoEl.innerHTML = rows || '<tr><td colspan="6" class="empty">No batches yet — make a purchase first</td></tr>';
+  }
+}
 
 function renderPP() {
   let cards='';
@@ -2039,23 +2101,21 @@ function removeBMBOMRow(s1Id, idx) {
 
 function saveBMBOMInline(s1Id) {
   if(!S.boms) S.boms={};
-  const allIng = [...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
-                  ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
-  const newBOM = [];
-  document.querySelectorAll('#bmbom-tbody-'+s1Id+' tr').forEach(tr => {
-    const selEl = tr.querySelector('select');
-    const qtyEl = tr.querySelector('input[type="number"]');
-    if(!selEl||!qtyEl) return;
-    const parts = (selEl.value||'').split('|');
-    const itemId=parts[0], itemType=parts[1];
-    const qty = parseFloat(qtyEl.value)||0;
+  const allIng=[...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
+                ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
+  const newBOM=[];
+  const tbody=document.getElementById('bmbom-tbody-'+s1Id);
+  if(tbody) tbody.querySelectorAll('tr').forEach(tr=>{
+    const sel=tr.querySelector('select'), inp=tr.querySelector('input[type="number"]');
+    if(!sel||!inp) return;
+    const [itemId,itemType]=(sel.value||'').split('|');
+    const qty=parseFloat(inp.value)||0;
     if(!itemId||qty<=0) return;
-    const label = allIng.find(x=>x.id===itemId)?.label||itemId;
-    newBOM.push({itemId,itemType,label,qtyPerKg:qty});
+    newBOM.push({itemId,itemType,label:allIng.find(x=>x.id===itemId)?.label||itemId,qtyPerKg:qty});
   });
-  S.boms[s1Id] = newBOM;
+  S.boms[s1Id]=newBOM;
   save(); renderSettBOM();
-  toast('BOM saved — '+newBOM.length+' ingredient(s) for '+(S.sfg1Items||[]).find(i=>i.id===s1Id)?.name);
+  toast('BOM saved — '+newBOM.length+' ingredient(s)');
 }
 
 function renderSettS1T(){
@@ -2619,7 +2679,7 @@ function updatePPModal() {
     const allIng = [...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
                    ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
     document.getElementById('pp-bom-rows').innerHTML = bom.map((line,idx) => {
-      const bomQty = outQty > 0 ? +(line.qtyPerKg * outQty).toFixed(3) : line.qtyPerKg;
+      const bomQty = outQty > 0 ? +(line.qtyPerKg * outQty).toFixed(3) : '';
       const avail = line.itemType==='rmItem' ? rmiStock(line.itemId) : ppStock(line.itemId);
       return `<tr style="border-bottom:1px solid var(--bd)">
         <td style="padding:5px 8px;font-size:12px">${line.label}</td>
@@ -3052,20 +3112,21 @@ function removePPBOMRow(ppItemId, idx) {
 
 function savePPBOMInline(ppItemId) {
   if(!S.ppBoms) S.ppBoms={};
-  const bom = S.ppBoms[ppItemId]||[];
-  const allIng = [...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
-                  ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
-  const newBOM = bom.map((line,i) => {
-    const selEl = document.getElementById(`ppbom-${ppItemId}-item-${i}`);
-    const qtyEl = document.getElementById(`ppbom-${ppItemId}-qty-${i}`);
-    const [itemId,itemType] = (selEl?.value||`${line.itemId}|${line.itemType}`).split('|');
-    const qty = parseFloat(qtyEl?.value)||line.qtyPerKg;
-    const label = allIng.find(i=>i.id===itemId)?.label||line.label;
-    return {itemId,itemType,label,qtyPerKg:qty};
-  }).filter(l=>l.qtyPerKg>0);
-  S.ppBoms[ppItemId] = newBOM;
+  const allIng=[...(S.rmItems||[]).map(i=>({id:i.id,label:i.name,type:'rmItem'})),
+                ...(S.ppItems||[]).map(i=>({id:i.id,label:i.name,type:'ppItem'}))];
+  const newBOM=[];
+  const tbody=document.getElementById('ppbom-tbody-'+ppItemId);
+  if(tbody) tbody.querySelectorAll('tr').forEach(tr=>{
+    const sel=tr.querySelector('select'), inp=tr.querySelector('input[type="number"]');
+    if(!sel||!inp) return;
+    const [itemId,itemType]=(sel.value||'').split('|');
+    const qty=parseFloat(inp.value)||0;
+    if(!itemId||qty<=0) return;
+    newBOM.push({itemId,itemType,label:allIng.find(x=>x.id===itemId)?.label||itemId,qtyPerKg:qty});
+  });
+  S.ppBoms[ppItemId]=newBOM;
   save(); renderSettPPBOM();
-  toast('✅ BOM saved for '+(S.ppItems||[]).find(i=>i.id===ppItemId)?.name);
+  toast('BOM saved — '+newBOM.length+' ingredient(s)');
 }
 
 function openPPBOMEditor(ppItemId) {
@@ -3621,307 +3682,209 @@ function editPM(id){
 
 // ══════════════════════════════════════════════════════
 //  ITEM MOVEMENT — #1
-// ══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  MOVEMENT, ENTRY DETAIL, REPORTS
+// ═══════════════════════════════════════════════════
 
-let _movementItemId = null, _movementItemType = null, _movementItemName = '';
+let _movItemId=null, _movItemType=null, _movItemName='';
 
-function showMovement(itemId, itemType, itemName) {
-  _movementItemId = itemId;
-  _movementItemType = itemType;
-  _movementItemName = itemName;
-  const titleEl = document.getElementById('movement-title');
-  if(titleEl) titleEl.textContent = '📋 ' + itemName + ' — Movement';
-  const periodEl = document.getElementById('movement-period');
-  if(periodEl) periodEl.value = '30';
-  renderMovement();
-  openModal('m-movement');
+function showMovement(itemId,itemType,itemName){
+  _movItemId=itemId; _movItemType=itemType; _movItemName=itemName;
+  const el=document.getElementById('movement-title');
+  if(el) el.textContent='📋 '+itemName+' — Movement';
+  const p=document.getElementById('movement-period'); if(p) p.value='30';
+  renderMovement(); openModal('m-movement');
 }
 
-function renderMovement() {
-  const days = parseInt(document.getElementById('movement-period')?.value)||30;
-  const cutoff = days > 0 ? Date.now() - days*24*60*60*1000 : 0;
-  const id = _movementItemId, type = _movementItemType;
-  let rows = [], totalIn = 0, totalOut = 0;
-
-  const txns = (S.transactions||[])
-    .filter(t => t.itemId===id && (cutoff===0 || t.ts>=cutoff))
-    .sort((a,b)=>a.ts-b.ts);
-
-  txns.forEach(t => {
-    let inQty='', outQty='', typeLabel='', ref='', color='';
-    switch(t.type) {
-      case 'purchase':
-        inQty=Number(t.qty).toFixed(3); typeLabel='Purchase'; ref=t.invoice||t.supplier||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
-      case 'powder-prod':
-        if(type==='ppItem'){ inQty=Number(t.qty).toFixed(3); typeLabel='PP Production'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); }
-        else { outQty=Number(t.totalInput||t.qty).toFixed(3); typeLabel='PP Used'; ref=t.batchCode||''; color='var(--red)'; totalOut+=Number(t.totalInput||t.qty); }
-        break;
-      case 'batchmix-prod':
-        inQty=Number(t.qty).toFixed(3); typeLabel='Batch Mix'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
-      case 'candy-forming':
-        inQty=Number(t.qty).toFixed(3); typeLabel='Candy Forming'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
-      case 'sfg2-prod':
-        inQty=Number(t.qty).toFixed(3); typeLabel='Pouch Packing'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
-      case 'fg-prod':
-        inQty=Number(t.qty); typeLabel='FG Packing'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
-      case 'dispatch':
-        outQty=Number(t.fgUnits||t.qty); typeLabel='Dispatch'; ref=t.invoice||t.distName||''; color='var(--red)'; totalOut+=Number(t.fgUnits||t.qty); break;
-      case 'damaged-return':
-        outQty=Number(t.qty).toFixed(3); typeLabel='Damaged'; ref=t.batchCode||''; color='var(--org)'; totalOut+=Number(t.qty); break;
-      case 'direct-issue':
-        outQty=Number(t.qty).toFixed(3); typeLabel='Direct Issue'; ref=t.remarks||''; color='var(--org)'; totalOut+=Number(t.qty); break;
-      default:
-        typeLabel=t.type; ref=t.batchCode||'';
-        if(t.qty>0){inQty=Number(t.qty).toFixed(3);totalIn+=Number(t.qty);}
-    }
-    rows.push(`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
+function renderMovement(){
+  const days=parseInt(document.getElementById('movement-period')?.value)||30;
+  const cutoff=days>0?Date.now()-days*24*60*60*1000:0;
+  const id=_movItemId;
+  let rows=[],tIn=0,tOut=0;
+  (S.transactions||[]).filter(t=>t.itemId===id&&(cutoff===0||t.ts>=cutoff))
+    .sort((a,b)=>a.ts-b.ts).forEach(t=>{
+    let inQ='',outQ='',lbl=t.type,ref='',col='var(--mu)';
+    if(t.type==='purchase'){inQ=Number(t.qty).toFixed(3);lbl='Purchase';ref=t.invoice||t.supplier||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='powder-prod'){inQ=Number(t.qty).toFixed(3);lbl='PP Made';ref=t.batchCode||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='batchmix-prod'){inQ=Number(t.qty).toFixed(3);lbl='Batch Mix';ref=t.batchCode||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='candy-forming'){inQ=Number(t.qty).toFixed(3);lbl='Candy Forming';ref=t.batchCode||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='sfg2-prod'){inQ=Number(t.qty).toFixed(3);lbl='Pouch Packing';ref=t.batchCode||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='fg-prod'){inQ=Number(t.qty);lbl='FG Packing';ref=t.batchCode||'';col='var(--grn)';tIn+=Number(t.qty);}
+    else if(t.type==='dispatch'){outQ=Number(t.fgUnits||t.qty);lbl='Dispatch';ref=t.distName||'';col='var(--red)';tOut+=Number(t.fgUnits||t.qty);}
+    else if(t.type==='damaged-return'){outQ=Number(t.qty).toFixed(3);lbl='Damaged';col='var(--org)';tOut+=Number(t.qty);}
+    else if(t.type==='direct-issue'){outQ=Number(t.qty).toFixed(3);lbl='Direct Issue';ref=t.remarks||'';col='var(--org)';tOut+=Number(t.qty);}
+    rows.push(`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for detail">
       <td>${t.date}</td>
-      <td><span class="badge badge-ok" style="background:${color}20;color:${color}">${typeLabel}</span></td>
+      <td><span style="background:${col}20;color:${col};padding:2px 8px;border-radius:4px;font-size:10px">${lbl}</span></td>
       <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
-      <td style="color:var(--grn);font-weight:600">${inQty||'—'}</td>
-      <td style="color:var(--red);font-weight:600">${outQty||'—'}</td>
-      <td style="font-size:11px;color:var(--mu)">${ref}</td>
-    </tr>`);
+      <td style="color:var(--grn);font-weight:600">${inQ||'—'}</td>
+      <td style="color:var(--red);font-weight:600">${outQ||'—'}</td>
+      <td style="font-size:11px;color:var(--mu)">${ref}</td></tr>`);
   });
-
-  document.getElementById('movement-rows').innerHTML = rows.join('') ||
-    '<tr><td colspan="6" class="empty">No transactions in this period</td></tr>';
-  document.getElementById('movement-in').textContent = totalIn.toFixed(3);
-  document.getElementById('movement-out').textContent = totalOut.toFixed(3);
-  const net = totalIn - totalOut;
-  const netEl = document.getElementById('movement-net');
-  netEl.textContent = net.toFixed(3);
-  netEl.style.color = net >= 0 ? 'var(--grn)' : 'var(--red)';
+  const el=document.getElementById('movement-rows');
+  if(el) el.innerHTML=rows.join('')||'<tr><td colspan="6" class="empty">No transactions in this period</td></tr>';
+  const net=tIn-tOut;
+  const inEl=document.getElementById('movement-in'); if(inEl) inEl.textContent=tIn.toFixed(3);
+  const outEl=document.getElementById('movement-out'); if(outEl) outEl.textContent=tOut.toFixed(3);
+  const netEl=document.getElementById('movement-net');
+  if(netEl){netEl.textContent=net.toFixed(3);netEl.style.color=net>=0?'var(--grn)':'var(--red)';}
 }
 
-// ── Make stock cards clickable to show movement ──
-function makeCardClickable(el, itemId, itemType, itemName) {
-  if(!el) return;
-  el.style.cursor = 'pointer';
-  el.title = 'Click to view movement';
-  el.onclick = () => showMovement(itemId, itemType, itemName);
-}
-
-// ══════════════════════════════════════════════════════
-//  ENTRY DETAIL — #5
-// ══════════════════════════════════════════════════════
-
-function showEntryDetail(ts) {
-  const t = (S.transactions||[]).find(x=>x.ts===ts);
-  if(!t) return;
-  const age = Date.now() - ts;
-  const thirtyMin = 30*60*1000;
-  const canDelete = AUTH.isAdmin || age <= thirtyMin;
-  const fields = {
-    'Date': t.date,
-    'Type': t.type,
-    'Item': t.itemName,
-    'Item Code': t.itemCode||'-',
-    'Batch Code': t.batchCode||'-',
-    'Quantity': t.qty,
-    'Unit': t.unit||'-',
-    'Supplier': t.supplier||'-',
-    'Invoice': t.invoice||'-',
-    'Distributor': t.distName||'-',
-    'RM Used': t.rmUsed||'-',
-    'PM Used': t.pmUsed||'-',
-    'Process Loss': t.processLoss!=null?t.processLoss+' kg':'-',
-    'Item Value': t.itemValue?'₹'+t.itemValue:'-',
-    'Alloc. Cost': t.allocCost?'₹'+t.allocCost:'-',
-    'Eff. Rate': t.effRate?'₹'+t.effRate:'-',
-    'Remarks': t.remarks||'-',
-  };
-  const body = Object.entries(fields)
-    .filter(([k,v])=>v&&v!=='-'&&v!=='undefined')
-    .map(([k,v])=>`<div style="display:flex;gap:12px;border-bottom:1px solid var(--bd);padding:4px 0">
-      <span style="width:140px;color:var(--mu);font-size:12px;flex-shrink:0">${k}</span>
-      <span style="font-weight:500">${v}</span>
-    </div>`).join('');
-  document.getElementById('entry-detail-body').innerHTML = body;
-  const delBtn = document.getElementById('entry-detail-del');
-  if(delBtn) {
-    if(canDelete) {
-      delBtn.style.display='';
-      delBtn.onclick = () => { closeModal('m-entry-detail'); deleteEntry(ts); };
-      delBtn.textContent = AUTH.isAdmin && age > thirtyMin ? '🗑 Admin Delete' : '✕ Delete';
-    } else {
-      delBtn.style.display='none';
-    }
+function showEntryDetail(ts){
+  const t=(S.transactions||[]).find(x=>x.ts===ts); if(!t) return;
+  const age=Date.now()-ts,thirtyMin=30*60*1000,canDel=AUTH.isAdmin||age<=thirtyMin;
+  const labels={date:'Date',type:'Type',itemName:'Item',itemCode:'Code',batchCode:'Batch',
+    qty:'Qty',unit:'Unit',supplier:'Supplier',invoice:'Invoice',distName:'Distributor',
+    rmUsed:'RM Used',pmUsed:'PM Used',processLoss:'Loss',itemValue:'Item Value',
+    allocCost:'Alloc. Cost',effRate:'Eff. Rate',remarks:'Remarks'};
+  const rows=Object.entries(labels).map(([k,lbl])=>{
+    const v=t[k]; if(v==null||v===''||v==='-') return '';
+    return `<div style="display:flex;gap:12px;border-bottom:1px solid var(--bd);padding:5px 0">
+      <span style="width:120px;color:var(--mu);font-size:11px;flex-shrink:0">${lbl}</span>
+      <span style="font-size:12px;font-weight:500">${v}</span></div>`;
+  }).join('');
+  const body=document.getElementById('entry-detail-body'); if(body) body.innerHTML=rows;
+  const db=document.getElementById('entry-detail-del');
+  if(db){
+    if(canDel){db.style.display='';db.textContent=AUTH.isAdmin&&age>thirtyMin?'🗑 Admin Delete':'✕ Delete';
+      db.onclick=()=>{closeModal('m-entry-detail');deleteEntry(ts);};}
+    else db.style.display='none';
   }
   openModal('m-entry-detail');
 }
 
-// ══════════════════════════════════════════════════════
-//  REPORTS — #4
-// ══════════════════════════════════════════════════════
+function deleteEntry(ts){
+  const t=(S.transactions||[]).find(x=>x.ts===ts); if(!t) return;
+  const age=Date.now()-ts,thirtyMin=30*60*1000;
+  if(!AUTH.isAdmin&&age>thirtyMin) return toast('Only admin can delete old entries','err');
+  const msg=AUTH.isAdmin&&age>thirtyMin?'⚠ FIFO batches will NOT auto-reverse. Proceed?':'Delete this entry?';
+  if(!confirm(msg)) return;
+  S.transactions=(S.transactions||[]).filter(x=>x.ts!==ts);
+  save(); renderPurchase(); renderDispatch();
+  toast('Entry deleted');
+}
 
-let _currentReport = '';
+function delBtn(ts){
+  const age=Date.now()-ts,thirtyMin=30*60*1000;
+  if(!AUTH.isAdmin&&age>thirtyMin) return '';
+  const cls=AUTH.isAdmin&&age>thirtyMin?'btn-danger':'btn-ghost';
+  return `<button class="btn ${cls} btn-sm" onclick="showEntryDetail(${ts})" title="View/Delete">${AUTH.isAdmin&&age>thirtyMin?'🗑':'✕'}</button>`;
+}
 
-function openReport(type) {
-  _currentReport = type;
-  const titles = {
-    stock:'Current Stock Report', purchase:'Purchase Report',
-    production:'Production Report', dispatch:'Dispatch Report',
-    loss:'Process Loss Report', valuation:'Inventory Valuation'
-  };
-  document.getElementById('report-title').textContent = titles[type]||type;
-  document.getElementById('report-output').style.display='';
+let _curReport='';
+function openReport(type){
+  _curReport=type;
+  const titles={stock:'Stock Report',purchase:'Purchase Report',production:'Production Report',dispatch:'Dispatch Report',loss:'Process Loss Report',valuation:'Inventory Valuation'};
+  const el=document.getElementById('report-title'); if(el) el.textContent=titles[type]||type;
+  const out=document.getElementById('report-output'); if(out) out.style.display='';
   runReport();
-  document.getElementById('report-output').scrollIntoView({behavior:'smooth'});
+  document.getElementById('report-output')?.scrollIntoView({behavior:'smooth'});
 }
 
-function runReport() {
-  const days = parseInt(document.getElementById('report-period')?.value)||30;
-  const cutoff = days > 0 ? Date.now() - days*24*60*60*1000 : 0;
-  const txns = (S.transactions||[]).filter(t=>cutoff===0||t.ts>=cutoff);
-  const body = document.getElementById('report-body');
-  switch(_currentReport) {
-    case 'stock': body.innerHTML = reportStock(); break;
-    case 'purchase': body.innerHTML = reportPurchase(txns); break;
-    case 'production': body.innerHTML = reportProduction(txns); break;
-    case 'dispatch': body.innerHTML = reportDispatch(txns); break;
-    case 'loss': body.innerHTML = reportLoss(txns); break;
-    case 'valuation': body.innerHTML = reportValuation(); break;
-  }
+function runReport(){
+  const days=parseInt(document.getElementById('report-period')?.value)||30;
+  const cutoff=days>0?Date.now()-days*24*60*60*1000:0;
+  const txns=(S.transactions||[]).filter(t=>cutoff===0||t.ts>=cutoff);
+  const body=document.getElementById('report-body'); if(!body) return;
+  const map={stock:()=>rptStock(),purchase:()=>rptPurchase(txns),production:()=>rptProduction(txns),
+    dispatch:()=>rptDispatch(txns),loss:()=>rptLoss(txns),valuation:()=>rptValuation()};
+  if(map[_curReport]) body.innerHTML=map[_curReport]();
 }
 
-function reportStock() {
-  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">';
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Raw Materials</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Unit</th><th>Min</th></tr></thead><tbody>';
-  (S.rmItems||[]).forEach(i=>{ const st=rmiStock(i.id); html+=`<tr><td>${i.name}</td><td style="color:${st>=i.minStock?'var(--grn)':'var(--red)'}">${st.toFixed(3)}</td><td>${i.unit}</td><td>${i.minStock}</td></tr>`; });
-  html += '</tbody></table></div>';
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Powder & Paste</div></div><table><thead><tr><th>Item</th><th>Stock (kg)</th></tr></thead><tbody>';
-  (S.ppItems||[]).forEach(i=>{ html+=`<tr><td>${i.name}</td><td>${ppStock(i.id).toFixed(3)}</td></tr>`; });
-  html += '</tbody></table></div>';
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Loose Candy</div></div><table><thead><tr><th>Item</th><th>Stock (kg)</th></tr></thead><tbody>';
-  (S.sfg1Items||[]).forEach(i=>{ html+=`<tr><td>${i.name}</td><td>${s1Stock(i.id).toFixed(3)}</td></tr>`; });
-  html += '</tbody></table></div>';
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Finished Goods</div></div><table><thead><tr><th>SKU</th><th>Units</th></tr></thead><tbody>';
-  (S.skus||[]).forEach(s=>{ html+=`<tr><td>${s.name}</td><td>${fgStock(s.id)}</td></tr>`; });
-  html += '</tbody></table></div>';
-  html += '</div>';
-  return html;
+function rptStock(){
+  const tbl=(title,rows)=>`<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">${title}</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Unit</th></tr></thead><tbody>${rows||'<tr><td colspan=3 class=empty>None</td></tr>'}</tbody></table></div>`;
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">'
+    +tbl('Raw Materials',(S.rmItems||[]).map(i=>`<tr onclick="showMovement('${i.id}','rmItem','${i.name}')" style="cursor:pointer" title="Click for movement"><td>${i.name}</td><td style="color:${rmiStock(i.id)>=i.minStock?'var(--grn)':'var(--red)'}">${rmiStock(i.id).toFixed(3)}</td><td>${i.unit}</td></tr>`).join(''))
+    +tbl('Powder & Paste',(S.ppItems||[]).map(i=>`<tr><td>${i.name}</td><td>${ppStock(i.id).toFixed(3)}</td><td>kg</td></tr>`).join(''))
+    +tbl('Loose Candy',(S.sfg1Items||[]).map(i=>`<tr><td>${i.name}</td><td>${s1Stock(i.id).toFixed(3)}</td><td>kg</td></tr>`).join(''))
+    +tbl('Finished Goods',(S.skus||[]).map(s=>`<tr><td>${s.name}</td><td>${fgStock(s.id)}</td><td>units</td></tr>`).join(''))
+    +'</div>';
 }
 
-function reportPurchase(txns) {
-  const rows = txns.filter(t=>t.type==='purchase').sort((a,b)=>b.ts-a.ts);
-  if(!rows.length) return '<div class="empty" style="padding:20px">No purchases in this period</div>';
-  const total = rows.reduce((s,t)=>s+(Number(t.itemValue)||0),0);
-  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Value</th><th>Eff. Rate</th></tr></thead><tbody>
-    ${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
+function rptPurchase(txns){
+  const rows=txns.filter(t=>t.type==='purchase').sort((a,b)=>b.ts-a.ts);
+  if(!rows.length) return '<div class=empty style="padding:20px">No purchases in this period</div>';
+  const total=rows.reduce((s,t)=>s+(Number(t.itemValue)||0),0);
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Value</th><th>Eff.Rate</th></tr></thead><tbody>
+    ${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td>${t.invoice||'-'}</td><td>${t.supplier||'-'}</td><td><b>${t.itemName}</b></td>
-      <td>${Number(t.qty).toFixed(3)}</td><td>${t.unit||'-'}</td>
-      <td>₹${Number(t.rate||0).toFixed(2)}</td>
+      <td>${Number(t.qty).toFixed(3)} ${t.unit||''}</td>
       <td>₹${Number(t.itemValue||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
       <td style="color:var(--grn)">₹${Number(t.effRate||t.rate||0).toFixed(4)}</td>
     </tr>`).join('')}
-    <tr style="font-weight:700;border-top:2px solid var(--bd)"><td colspan="7">Total</td><td>₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td><td></td></tr>
+    <tr style="font-weight:700;border-top:2px solid var(--bd)"><td colspan=5>Total</td><td>₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td><td></td></tr>
   </tbody></table></div>`;
 }
 
-function reportProduction(txns) {
-  const types = ['powder-prod','batchmix-prod','candy-forming','sfg2-prod','fg-prod'];
-  const labels = {'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming','sfg2-prod':'Pouch Packing','fg-prod':'FG Packing'};
-  return types.map(type => {
-    const rows = txns.filter(t=>t.type===type).sort((a,b)=>b.ts-a.ts);
-    if(!rows.length) return '';
-    return `<div class="tbl-wrap" style="margin-bottom:12px">
-      <div class="tbl-head"><div class="tbl-title">${labels[type]}</div></div>
+function rptProduction(txns){
+  const typeMap={'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming','sfg2-prod':'Pouch Packing','fg-prod':'FG Packing'};
+  const html=Object.entries(typeMap).map(([type,label])=>{
+    const rows=txns.filter(t=>t.type===type).sort((a,b)=>b.ts-a.ts); if(!rows.length) return '';
+    return `<div class="tbl-wrap" style="margin-bottom:12px"><div class="tbl-head"><div class="tbl-title">${label}</div></div>
       <table><thead><tr><th>Date</th><th>Item</th><th>Batch</th><th>Output</th><th>Loss</th></tr></thead>
       <tbody>${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
         <td>${t.date}</td><td><b>${t.itemName}</b></td>
         <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
-        <td>${Number(t.qty).toFixed(3)}</td>
-        <td style="color:var(--org)">${t.processLoss!=null?Number(t.processLoss).toFixed(3):'-'}</td>
+        <td>${Number(t.qty).toFixed(3)}</td><td style="color:var(--org)">${t.processLoss!=null?Number(t.processLoss).toFixed(3):'-'}</td>
       </tr>`).join('')}</tbody></table></div>`;
   }).join('');
+  return html||'<div class=empty style="padding:20px">No production in this period</div>';
 }
 
-function reportDispatch(txns) {
-  const rows = txns.filter(t=>t.type==='dispatch').sort((a,b)=>b.ts-a.ts);
-  if(!rows.length) return '<div class="empty" style="padding:20px">No dispatches in this period</div>';
-  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Distributor</th><th>Item</th><th>Type</th><th>Qty</th><th>FG Units</th></tr></thead>
+function rptDispatch(txns){
+  const rows=txns.filter(t=>t.type==='dispatch').sort((a,b)=>b.ts-a.ts);
+  if(!rows.length) return '<div class=empty style="padding:20px">No dispatches in this period</div>';
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Distributor</th><th>Item</th><th>Type</th><th>Qty</th><th>Units</th></tr></thead>
     <tbody>${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
       <td>${t.date}</td><td>${t.invoice||'-'}</td><td>${t.distName||'-'}</td><td><b>${t.itemName}</b></td>
-      <td>${t.dispType==='ws'?'WS Carton':'FG Unit'}</td>
-      <td>${t.qty}</td><td>${t.fgUnits||t.qty}</td>
+      <td>${t.dispType==='ws'?'WS Carton':'FG Unit'}</td><td>${t.qty}</td><td>${t.fgUnits||t.qty}</td>
     </tr>`).join('')}</tbody></table></div>`;
 }
 
-function reportLoss(txns) {
-  const types = ['powder-prod','batchmix-prod','candy-forming'];
-  const labels = {'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming'};
-  return types.map(type => {
-    const rows = txns.filter(t=>t.type===type && t.processLoss!=null).sort((a,b)=>b.ts-a.ts);
-    if(!rows.length) return '';
-    const totalIn = rows.reduce((s,t)=>s+(Number(t.totalInput)||Number(t.qty)||0),0);
-    const totalLoss = rows.reduce((s,t)=>s+(Number(t.processLoss)||0),0);
-    const pct = totalIn>0?(totalLoss/totalIn*100).toFixed(2):0;
-    return `<div class="tbl-wrap" style="margin-bottom:12px">
-      <div class="tbl-head"><div class="tbl-title">${labels[type]} — Loss: ${totalLoss.toFixed(3)} kg (${pct}% of input)</div></div>
-      <table><thead><tr><th>Date</th><th>Item</th><th>Batch</th><th>Input</th><th>Output</th><th>Loss</th><th>Loss%</th></tr></thead>
-      <tbody>${rows.map(t=>{
-        const inp=Number(t.totalInput||t.bmInput||0); const loss=Number(t.processLoss||0);
+function rptLoss(txns){
+  const typeMap={'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming'};
+  const html=Object.entries(typeMap).map(([type,label])=>{
+    const rows=txns.filter(t=>t.type===type).sort((a,b)=>b.ts-a.ts); if(!rows.length) return '';
+    const tL=rows.reduce((s,t)=>s+(Number(t.processLoss)||0),0);
+    const tI=rows.reduce((s,t)=>s+(Number(t.totalInput||t.bmInput||0)),0);
+    return `<div class="tbl-wrap" style="margin-bottom:12px"><div class="tbl-head"><div class="tbl-title">${label} — Loss: ${tL.toFixed(3)} kg (${tI>0?(tL/tI*100).toFixed(1):0}%)</div></div>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Batch</th><th>Input</th><th>Output</th><th>Loss</th><th>%</th></tr></thead>
+      <tbody>${rows.map(t=>{const inp=Number(t.totalInput||t.bmInput||0),loss=Number(t.processLoss||0);
         return `<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
           <td>${t.date}</td><td><b>${t.itemName}</b></td>
           <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
           <td>${inp.toFixed(3)}</td><td>${Number(t.qty).toFixed(3)}</td>
           <td style="color:var(--red);font-weight:600">${loss.toFixed(3)}</td>
           <td style="color:var(--org)">${inp>0?(loss/inp*100).toFixed(1):0}%</td>
-        </tr>`;
-      }).join('')}</tbody></table></div>`;
-  }).join('') || '<div class="empty" style="padding:20px">No production with loss data in this period</div>';
+        </tr>`;}).join('')}</tbody></table></div>`;
+  }).join('');
+  return html||'<div class=empty style="padding:20px">No loss data in this period</div>';
 }
 
-function reportValuation() {
-  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">';
-  let grandTotal = 0;
-  // RM valuation
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Raw Materials</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Eff. Rate</th><th>Value</th></tr></thead><tbody>';
+function rptValuation(){
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">',grand=0;
+  h+='<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Raw Materials</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Avg Rate</th><th>Value</th></tr></thead><tbody>';
   (S.rmItems||[]).forEach(i=>{
-    const st=rmiStock(i.id);
-    const batches=(S.rmiBatches||{})[i.id]||[];
-    const avgRate=batches.length?batches.reduce((s,b)=>(s+(b.rate||0)*b.qty),0)/batches.reduce((s,b)=>s+b.qty,1):0;
-    const val=+(st*avgRate).toFixed(2); grandTotal+=val;
-    html+=`<tr><td>${i.name}</td><td>${st.toFixed(3)} ${i.unit}</td><td>₹${avgRate.toFixed(4)}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;
+    const st=rmiStock(i.id),batches=(S.rmiBatches||{})[i.id]||[];
+    const tq=batches.reduce((s,b)=>s+b.qty,0);
+    const avg=tq>0?batches.reduce((s,b)=>s+(b.rate||0)*b.qty,0)/tq:0;
+    const val=+(st*avg).toFixed(2); grand+=val;
+    h+=`<tr><td>${i.name}</td><td>${st.toFixed(3)} ${i.unit}</td><td>₹${avg.toFixed(4)}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;
   });
-  html += '</tbody></table></div>';
-  // FG valuation
-  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Finished Goods</div></div><table><thead><tr><th>SKU</th><th>Units</th><th>MRP</th><th>MRP Value</th></tr></thead><tbody>';
-  (S.skus||[]).forEach(s=>{
-    const st=fgStock(s.id); const val=+(st*(s.mrp||0)).toFixed(2); grandTotal+=val;
-    html+=`<tr><td>${s.name}</td><td>${st}</td><td>₹${s.mrp||0}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;
-  });
-  html += `</tbody></table></div></div>`;
-  html += `<div style="margin-top:12px;text-align:right;font-size:14px;font-weight:700">Grand Total (approx): ₹${grandTotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</div>`;
-  return html;
+  h+='</tbody></table></div>';
+  h+='<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Finished Goods (MRP)</div></div><table><thead><tr><th>SKU</th><th>Units</th><th>MRP</th><th>Value</th></tr></thead><tbody>';
+  (S.skus||[]).forEach(s=>{const st=fgStock(s.id),val=+(st*(s.mrp||0)).toFixed(2);grand+=val;
+    h+=`<tr><td>${s.name}</td><td>${st}</td><td>₹${s.mrp||0}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;});
+  return h+`</tbody></table></div></div><div style="margin-top:12px;text-align:right;font-size:14px;font-weight:700">Grand Total: ₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}</div>`;
 }
 
-function printReport() {
-  const title = document.getElementById('report-title')?.textContent||'Report';
-  const body = document.getElementById('report-body')?.innerHTML||'';
-  const w = window.open('','_blank');
-  w.document.write(`<html><head><title>${title}</title>
-    <style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}
-    h2{margin-bottom:16px}</style></head><body>
-    <h2>${title}</h2>${body}</body></html>`);
+function printReport(){
+  const title=document.getElementById('report-title')?.textContent||'Report';
+  const body=document.getElementById('report-body')?.innerHTML||'';
+  const w=window.open('','_blank');
+  w.document.write('<html><head><title>'+title+'</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}</style></head><body><h2>'+title+'</h2>'+body+'</body></html>');
   w.document.close(); w.print();
 }
-
-// ── Add movement links to stock pages ──
-const _origRenderRM = renderRM;
-function renderRM() {
-  _origRenderRM();
-  setTimeout(()=>{
-    document.querySelectorAll('#rm-tbl tr[data-id]').forEach(tr=>{
-      const id=tr.dataset.id; const item=(S.rmItems||[]).find(i=>i.id===id);
-      if(item){ tr.style.cursor='pointer'; tr.onclick=()=>showMovement(id,'rmItem',item.name); }
-    });
-  },100);
-}
-
-
 
 </script>
 </body>
