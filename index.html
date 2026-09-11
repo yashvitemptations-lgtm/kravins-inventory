@@ -991,41 +991,6 @@ function fifoTable(batches, label) {
 
 
 
-
-function renderRM() {
-  const cardsEl = (document.getElementById('rm-cards')||{innerHTML:''});
-  const fifoEl  = (document.getElementById('rm-fifo') ||{innerHTML:''});
-  const tblEl   = (document.getElementById('rm-tbl')  ||{innerHTML:''});
-  let cards = '';
-  (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
-    const st=rmiStock(i.id), ok=st>=i.minStock;
-    cards+=`<div class="card" style="cursor:pointer" onclick="showMovement('${i.id}','rmItem','${i.name}')">
-      <div class="card-label">Raw Material</div>
-      <div class="card-name">${i.name}</div>
-      <div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(3)}</div>
-      <div class="card-unit">${i.unit} · min ${i.minStock}</div>
-    </div>`;
-  });
-  cardsEl.innerHTML = cards || '<div style="color:var(--mu);font-size:12px">No RM items</div>';
-  // FIFO table
-  let fifoRows = '';
-  let first = true;
-  (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
-    const batches = (S.rmiBatches||{})[i.id]||[];
-    batches.forEach((b,idx)=>{
-      fifoRows+=`<tr style="cursor:pointer" onclick="showMovement('${i.id}','rmItem','${i.name}')">
-        <td>${idx===0?'<span class="fifo-tag">NEXT</span>':''}</td>
-        <td>${i.name}</td>
-        <td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td>
-        <td>${b.date}</td>
-        <td><b>${Number(b.qty).toFixed(3)}</b></td>
-        <td><span class="badge badge-ok">Active</span></td>
-      </tr>`;
-    });
-  });
-  fifoEl.innerHTML = fifoRows || '<tr><td colspan="6" class="empty">No RM batches yet</td></tr>';
-}
-
 function renderPP() {
   let cards='';
   (S.ppItems||[]).forEach(i=>{ const st=ppStock(i.id),ok=st>=i.minStock; cards+=`<div class="card"><div class="card-label">${i.type}</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(2)}</div><div class="card-unit">kg · min ${i.minStock}</div></div>`; });
