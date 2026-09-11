@@ -566,7 +566,9 @@ select option{background:#1a1815}
     </div>
   </div>
 </div>
+
 <script>
+
 
 // Kravins Inventory v10.1 — 2026-09-11 17:11
 
@@ -3563,35 +3565,9 @@ async function savePurchase() {
 // ── Updated renderPurchase — richer table ──
 
 // ── Delete entry ──
-async function deleteEntry(ts) {
-  const txn = (S.transactions||[]).find(t=>t.ts===ts);
-  if(!txn) return toast('Entry not found','err');
-  const age = Date.now() - ts;
-  const thirtyMin = 30*60*1000;
-  if(!AUTH.isAdmin && age > thirtyMin)
-    return toast('Only admin can delete entries older than 30 minutes','err');
-  if(AUTH.isAdmin && age > thirtyMin) {
-    if(!confirm('⚠ Admin delete: This will permanently remove this entry and may affect stock/FIFO. Proceed?')) return;
-  } else {
-    if(!confirm('Delete this entry?')) return;
-  }
-  // Remove from transactions
-  S.transactions = (S.transactions||[]).filter(t=>t.ts!==ts);
-  // Note: FIFO reversal is complex — warn admin
-  save();
-  renderPurchase(); renderRM(); renderPP(); renderDispatch();
-  toast('Entry deleted'+(AUTH.isAdmin&&age>thirtyMin?' — Note: FIFO batches not auto-reversed. Check stock manually.':''));
-}
 
-function delBtn(ts) {
-  const age = Date.now() - ts;
-  const thirtyMin = 30*60*1000;
-  const canDelete = AUTH.isAdmin || age <= thirtyMin;
-  if(!canDelete) return '';
-  const cls = AUTH.isAdmin && age > thirtyMin ? 'btn-danger' : 'btn-ghost';
-  const label = AUTH.isAdmin && age > thirtyMin ? '🗑 Delete' : '✕';
-  return `<button class="btn ${cls} btn-sm" onclick="deleteEntry(${ts})">${label}</button>`;
-}
+
+
 
 function renderPurchase() {
   document.getElementById('purchase-log').innerHTML = '';
@@ -3885,6 +3861,7 @@ function printReport(){
   w.document.write('<html><head><title>'+title+'</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}</style></head><body><h2>'+title+'</h2>'+body+'</body></html>');
   w.document.close(); w.print();
 }
+
 
 </script>
 </body>
