@@ -439,720 +439,104 @@ select option{background:#1a1815}
 
 <!-- PRINT -->
 <div id="page-print" class="page">
-  <div class="page-header"><div><div class="page-title">Print &amp; Reports</div></div></div>
-  <div class="quick-grid">
-    <div class="quick-card" onclick="openPrintModal('batch')"><div style="font-size:24px;margin-bottom:8px">🏷️</div><div style="font-weight:600">Batch Slip</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print batch details for any production run</div></div>
-    <div class="quick-card" onclick="openPrintModal('stock')"><div style="font-size:24px;margin-bottom:8px">📦</div><div style="font-weight:600">Stock Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Current stock across all stages</div></div>
-    <div class="quick-card" onclick="openPrintModal('production')"><div style="font-size:24px;margin-bottom:8px">📋</div><div style="font-weight:600">Production Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">All production runs</div></div>
-    <div class="quick-card" onclick="openPrintModal('dispatch')"><div style="font-size:24px;margin-bottom:8px">🚚</div><div style="font-weight:600">Dispatch Note</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print for any dispatch</div></div>
-  </div>
-  <div id="print-area"></div>
-</div>
-
-<!-- ITEM MASTER -->
-<div id="page-itemmaster" class="page">
-  <div class="page-header">
-    <div><div class="page-title">Item &amp; Batch Code Master</div></div>
-    <div class="btns-row">
-      <button class="btn btn-primary btn-sm" onclick="openModal('m-add-icode')">+ Add Item Code</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportIM()">↓ Export CSV</button>
+  <div class="page-header"><div class="page-title">Print / Reports</div></div>
+  <!-- Report Cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+    <div class="card" style="cursor:pointer" onclick="openReport('stock')">
+      <div class="card-label">Stock Report</div>
+      <div class="card-name">Current Stock</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">All items with current qty</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="openReport('purchase')">
+      <div class="card-label">Purchase Report</div>
+      <div class="card-name">Purchases</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">All purchase entries with cost</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="openReport('production')">
+      <div class="card-label">Production Report</div>
+      <div class="card-name">Production Log</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">All production runs by stage</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="openReport('dispatch')">
+      <div class="card-label">Dispatch Report</div>
+      <div class="card-name">Dispatches</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">All dispatch entries by distributor</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="openReport('loss')">
+      <div class="card-label">Loss Report</div>
+      <div class="card-name">Process Loss</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">Loss at each production stage</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="openReport('valuation')">
+      <div class="card-label">Valuation Report</div>
+      <div class="card-name">Inventory Value</div>
+      <div style="font-size:11px;color:var(--mu);margin-top:6px">Stock value at effective cost</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
     </div>
   </div>
-  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
-    <button class="stage-tab active" onclick="imTab('rm',this)">RM</button>
-    <button class="stage-tab" onclick="imTab('sfg',this)">SFG</button>
-    <button class="stage-tab" onclick="imTab('fg',this)">FG</button>
-    <button class="stage-tab" onclick="imTab('ws',this)">WS Cartons</button>
-    <button class="stage-tab" onclick="imTab('seq',this)">Batch Sequences</button>
-  </div>
-  <div id="im-rm"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>UOM</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-rm-tbl"></tbody></table></div></div>
-  <div id="im-sfg" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>UOM</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-sfg-tbl"></tbody></table></div></div>
-  <div id="im-fg" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>Pack Type</th><th>Batch Prefix</th><th>TPN</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-fg-tbl"></tbody></table></div></div>
-  <div id="im-ws" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Item Code</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-ws-tbl"></tbody></table></div></div>
-  <div id="im-seq" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Batch Key</th><th>Current Seq</th><th>Last Code</th><th class="admin-only">Action</th></tr></thead><tbody id="im-seq-tbl"></tbody></table></div></div>
-</div>
-
-<!-- SETTINGS -->
-<div id="page-settings" class="page">
-  <div class="page-header"><div class="page-title">Settings</div></div>
-  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
-    <button class="stage-tab active" onclick="settTab('flavours',this)">Flavours</button>
-    <button class="stage-tab" onclick="settTab('rmi',this)">RM Items</button>
-    <button class="stage-tab" onclick="settTab('ppi',this)">Powder/Paste</button>
-    <button class="stage-tab" onclick="settTab('bmi',this)">Batch Mix Types</button>
-    <button class="stage-tab" onclick="settTab('s1t',this)">Candy Types</button>
-    <button class="stage-tab" onclick="settTab('ppbom',this)">PP BOM</button>
-    <button class="stage-tab" onclick="settTab('bom',this)">Batch Mix BOM</button>
-    <button class="stage-tab" onclick="settTab('s2t',this)">Pouch Types</button>
-    <button class="stage-tab" onclick="settTab('skus',this)">FG SKUs</button>
-    <button class="stage-tab" onclick="settTab('pm',this)">Packing Mat.</button>
-    <button class="stage-tab" onclick="settTab('ws',this)">WS Packs</button>
-    <button class="stage-tab" onclick="settTab('dist',this)">Distributors</button>
-  </div>
-  <div id="sett-flavours">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-fl')">+ Add Flavour</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Flavour</th><th>Brand</th><th>Code</th><th>Status</th></tr></thead><tbody id="sett-fl-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-rmi" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-rmi')">+ Add RM Item</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-rmi-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-ppi" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-ppi')">+ Add Powder/Paste</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Made From</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-ppi-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-bmi" style="display:none">
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Linked Candy Type</th><th>Current Stock (kg)</th><th>Min Stock</th></tr></thead><tbody id="sett-bmi-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-s1t" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-s1t')">+ Add Candy Type</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Flavour</th><th>Code</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-s1t-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-ppbom" style="display:none"><div id="sett-ppbom-content"></div></div>
-  <div id="sett-bom" style="display:none"><div id="sett-bom-content"></div></div>
-  <div id="sett-s2t" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-s2t')">+ Add Pouch Type</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>SFG-1 Source</th><th>Item Code</th><th>PW Code</th><th>Stock (kg)</th></tr></thead><tbody id="sett-s2t-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-skus" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-sku')">+ Add FG SKU</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>SKU</th><th>Flavour</th><th>Type</th><th>Item Code</th><th>SFG-2 Source</th><th>kg/unit</th></tr></thead><tbody id="sett-sku-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-pm" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-pm')">+ Add PM Item</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Used For</th><th>Min Stock</th><th>Stock</th></tr></thead><tbody id="sett-pm-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-ws" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-ws')">+ Add WS Pack</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Source SKU</th><th>Qty/Carton</th><th>Item Code</th></tr></thead><tbody id="sett-ws-tbl"></tbody></table></div>
-  </div>
-  <div id="sett-dist" style="display:none">
-    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-dist')">+ Add Distributor</button></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>City</th><th>Contact</th><th></th></tr></thead><tbody id="sett-dist-tbl"></tbody></table></div>
+  <!-- Report Output -->
+  <div id="report-output" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <b id="report-title" style="font-size:14px"></b>
+      <select class="fs" id="report-period" style="width:150px" onchange="runReport()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 1 year</option>
+        <option value="0">All time</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('report-output').style.display='none'">✕ Close</button>
+    </div>
+    <div id="report-body"></div>
   </div>
 </div>
 
-<!-- ADMIN PANEL -->
-<div id="page-adminpanel" class="page">
-  <div class="page-header"><div class="page-title">Admin Panel</div></div>
-  <div class="tbl-wrap" style="max-width:480px"><div class="tbl-head"><div class="tbl-title">🔐 Change Passwords</div></div>
-    <div style="padding:20px">
-      <div class="form-group"><label class="fl">Admin Password</label><div style="display:flex;gap:8px"><input class="fi" type="password" id="new-admin-pwd" placeholder="New admin password"><button class="btn btn-primary btn-sm" onclick="changePwd('admin')">Save</button></div></div>
-      <div class="form-group"><label class="fl">User Password</label><div style="display:flex;gap:8px"><input class="fi" type="password" id="new-user-pwd" placeholder="New user password"><button class="btn btn-primary btn-sm" onclick="changePwd('user')">Save</button></div></div>
+<!-- Item Movement Modal -->
+<div class="overlay" id="m-movement">
+  <div class="modal" style="width:860px;max-width:97vw">
+    <div class="modal-title" id="movement-title">📋 Item Movement</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <select class="fs" id="movement-period" style="width:150px" onchange="renderMovement()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 1 year</option>
+        <option value="0">All time</option>
+      </select>
     </div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Date</th><th>Type</th><th>Batch / Ref</th><th>In</th><th>Out</th><th>Supplier / Dist</th></tr></thead>
+      <tbody id="movement-rows"></tbody></table>
+    </div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap">
+      <div style="font-size:12px"><span style="color:var(--mu)">Total In: </span><b id="movement-in">—</b></div>
+      <div style="font-size:12px"><span style="color:var(--mu)">Total Out: </span><b id="movement-out">—</b></div>
+      <div style="font-size:12px"><span style="color:var(--mu)">Net: </span><b id="movement-net">—</b></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-movement')">Close</button></div>
   </div>
 </div>
 
-</div><!-- /main -->
-
-<!-- ══ MODALS ══ -->
-
-<!-- Multi-Item Purchase Entry -->
-<div class="overlay" id="m-buy-rmi">
-  <div class="modal" style="width:780px;max-width:97vw">
-    <div class="modal-title">🛒 Purchase Entry</div>
-    <!-- Header -->
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Supplier</label>
-        <input class="fi" id="pur-supplier" placeholder="Supplier / Vendor name"></div>
-      <div class="form-group"><label class="fl">Invoice No.</label>
-        <input class="fi" id="pur-invoice" placeholder="Invoice number"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label>
-        <input class="fi" type="date" id="pur-date"></div>
-      <div class="form-group"><label class="fl">Category</label>
-        <select class="fs" id="pur-cat" onchange="updatePurItemList()">
-          <option value="rm">Raw Material</option>
-          <option value="pm">Packing Material</option>
-        </select></div>
-    </div>
-    <!-- Items Table -->
-    <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">Items</div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:600px">
-        <thead>
-          <tr style="border-bottom:1px solid var(--bd)">
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:30%">Item</th>
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:12%">Qty</th>
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:8%">Unit</th>
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:14%">Rate (₹/unit)</th>
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:14%">Value (₹)</th>
-            <th style="padding:5px 6px;font-size:10px;color:var(--mu);text-align:left;width:14%">Batch Code</th>
-            <th style="width:8%"></th>
-          </tr>
-        </thead>
-        <tbody id="pur-rows"></tbody>
-      </table>
-    </div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addPurRow()">+ Add Item</button>
-    <!-- Additional Costs -->
-    <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px">Additional Costs <span style="font-weight:400;color:var(--mu)">(allocated by weight proportion)</span></div>
-    <div id="pur-costs">
-      <div class="form-row pur-cost-row" style="margin-bottom:6px">
-        <div class="form-group"><label class="fl">Description</label>
-          <input class="fi pur-cost-desc" placeholder="e.g. Freight" value="Freight"></div>
-        <div class="form-group"><label class="fl">Amount (₹)</label>
-          <input class="fi pur-cost-amt" type="number" placeholder="0" step="0.01" oninput="updatePurTotals()"></div>
-      </div>
-    </div>
-    <button class="btn btn-ghost btn-sm" onclick="addPurCostRow()">+ Add Cost</button>
-    <!-- Totals -->
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-top:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-        <span style="color:var(--mu)">Items Total</span><span id="pur-items-total">₹ 0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-        <span style="color:var(--mu)">Additional Costs</span><span id="pur-addl-total">₹ 0.00</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;border-top:1px solid var(--bd);padding-top:8px;margin-top:4px">
-        <span>Invoice Total</span><span id="pur-inv-total">₹ 0.00</span>
-      </div>
-    </div>
-    <!-- Allocation preview -->
-    <div id="pur-alloc-preview" style="display:none;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Cost Allocation (weight proportion)</div>
-      <table style="width:100%;border-collapse:collapse;font-size:11px">
-        <thead><tr style="border-bottom:1px solid var(--bd)">
-          <th style="padding:4px 6px;text-align:left;color:var(--mu)">Item</th>
-          <th style="padding:4px 6px;text-align:left;color:var(--mu)">Item Value</th>
-          <th style="padding:4px 6px;text-align:left;color:var(--mu)">Alloc. Cost</th>
-          <th style="padding:4px 6px;text-align:left;color:var(--mu)">Total Cost</th>
-          <th style="padding:4px 6px;text-align:left;color:var(--mu)">Eff. Rate/unit</th>
-        </tr></thead>
-        <tbody id="pur-alloc-rows"></tbody>
-      </table>
-    </div>
+<!-- Entry Detail Modal -->
+<div class="overlay" id="m-entry-detail">
+  <div class="modal" style="width:580px;max-width:97vw">
+    <div class="modal-title">📄 Entry Detail</div>
+    <div id="entry-detail-body" style="font-size:13px;line-height:2.2"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-buy-rmi')">Cancel</button>
-      <button class="btn btn-primary" onclick="savePurchase()">✓ Save Purchase</button>
+      <button class="btn btn-ghost" onclick="closeModal('m-entry-detail')">Close</button>
+      <button class="btn btn-danger btn-sm" id="entry-detail-del" style="display:none">🗑 Delete Entry</button>
     </div>
   </div>
 </div>
-
-<!-- Buy PM -->
-<div class="overlay" id="m-buy-pm">
-  <div class="modal">
-    <div class="modal-title">📦 Add Packing Material Stock</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Item</label><select class="fs" id="buy-pm-item"></select></div>
-      <div class="form-group"><label class="fl">Qty (pcs)</label><input class="fi" type="number" id="buy-pm-qty" placeholder="e.g. 500" min="1"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="buy-pm-date"></div>
-      <div class="form-group"><label class="fl">Supplier</label><input class="fi" id="buy-pm-sup"></div>
-    </div>
-    <div class="form-group"><label class="fl">Invoice</label><input class="fi" id="buy-pm-inv"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-buy-pm')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveBuyPM()">Add Stock</button>
-    </div>
-  </div>
-</div>
-
-<!-- PP Production (BOM-based) -->
-<div class="overlay" id="m-pp-prod">
-  <div class="modal modal-lg">
-    <div class="modal-title">🫙 Powder / Paste Making</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Output Item</label>
-        <select class="fs" id="pp-out" onchange="updatePPModal()"></select></div>
-      <div class="form-group"><label class="fl">Output Qty (kg)</label>
-        <input class="fi" type="number" id="pp-out-qty" placeholder="e.g. 65" step="0.01" oninput="updatePPLoss()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="pp-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="pp-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="pp-batch">—</div></div>
-    <!-- BOM inputs -->
-    <div id="pp-inputs-section" style="display:none">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin:12px 0 6px;text-transform:uppercase;letter-spacing:1px">Input Quantities (from BOM — edit as needed)</div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
-        <thead><tr>
-          <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;border-bottom:1px solid var(--bd)">Ingredient</th>
-          <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;border-bottom:1px solid var(--bd)">BOM Qty</th>
-          <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;border-bottom:1px solid var(--bd)">Actual Qty (kg)</th>
-          <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;border-bottom:1px solid var(--bd)">Available</th>
-        </tr></thead>
-        <tbody id="pp-bom-rows"></tbody>
-      </table>
-      <button class="btn btn-ghost btn-sm" onclick="addPPInputRow()">+ Add Row</button>
-    </div>
-    <!-- Simple input (no BOM) -->
-    <div id="pp-simple-input" style="display:none">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin:12px 0 6px;text-transform:uppercase">Input Raw Material</div>
-      <div class="form-row">
-        <div class="form-group"><label class="fl">RM Item</label><select class="fs" id="pp-simple-item"></select></div>
-        <div class="form-group"><label class="fl">Input Qty (kg)</label><input class="fi" type="number" id="pp-simple-qty" step="0.01" oninput="updatePPLoss()"></div>
-      </div>
-    </div>
-    <!-- Process loss -->
-    <div id="pp-loss-box" style="display:none;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:6px;text-transform:uppercase">Process Summary</div>
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--mu)">Total Input</span><span id="pp-total-input">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span style="color:var(--mu)">Output Qty</span><span id="pp-total-output">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px;font-weight:600"><span style="color:var(--org)">Process Loss</span><span id="pp-loss-val" style="color:var(--org)">—</span></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-pp-prod')">Cancel</button>
-      <button class="btn btn-success" onclick="savePPProd()">✓ Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- PP Return -->
-<div class="overlay" id="m-pp-return">
-  <div class="modal">
-    <div class="modal-title">↩️ Return Powder/Paste to Stock</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Item</label><select class="fs" id="ppr-item"></select></div>
-      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="ppr-qty" step="0.01"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ppr-date"></div>
-      <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="ppr-stage"><option>Batch Mix</option><option>Direct Issue Return</option><option>Other</option></select></div>
-    </div>
-    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="ppr-notes"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-pp-return')">Cancel</button>
-      <button class="btn btn-success" onclick="savePPReturn()">Return to Stock</button>
-    </div>
-  </div>
-</div>
-
-<!-- Batch Mix -->
-<div class="overlay" id="m-batchmix">
-  <div class="modal modal-lg" style="width:740px">
-    <div class="modal-title">⚗️ Batch Mix</div>
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11px;color:var(--mu)">
-      Mix dry powders + binding agents. BOM auto-fills from Settings → BOM. Output goes to Batch Mix Store.
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Target Candy Type</label><select class="fs" id="bm-type" onchange="updateBMBOM()"></select></div>
-      <div class="form-group"><label class="fl">Batch Output (kg)</label><input class="fi" type="number" id="bm-size" placeholder="e.g. 100" step="0.1" oninput="updateBMBOM()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="bm-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="bm-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="bm-batch">—</div></div>
-    <div id="bm-bom" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px">
-        <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase">Ingredients BOM</div>
-        <button class="btn btn-ghost btn-sm" onclick="addBMBOMRow()">+ Add Row</button>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
-        <thead><tr>
-          <th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Ingredient</th>
-          <th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Type</th>
-          <th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">BOM (kg)</th>
-          <th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Actual (kg)</th>
-          <th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Available</th>
-          <th></th>
-        </tr></thead>
-        <tbody id="bm-bom-rows"></tbody>
-      </table>
-      <div class="bom-box">
-        <div style="display:flex;justify-content:space-between;font-size:12px"><span>Total Input</span><span id="bm-total-input" style="font-weight:600">—</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span>Batch Output</span><span id="bm-total-output" style="font-weight:600;color:var(--grn)">—</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px;padding-top:4px;border-top:1px solid var(--bd)"><span>Process Loss</span><span id="bm-process-loss" style="font-weight:600;color:var(--org)">—</span></div>
-      </div>
-      <div style="background:var(--s2);border:1px solid var(--org);border-radius:8px;padding:12px;margin-top:10px">
-        <div style="font-size:10px;font-weight:600;color:var(--org);margin-bottom:8px">⚠️ ADD DAMAGED CANDY TO MIX (optional)</div>
-        <div class="form-row">
-          <div><label class="fl">Type</label><select class="fs" id="bm-dmg-type" onchange="updateBMDamaged()"></select></div>
-          <div><label class="fl">Qty (kg)</label><input class="fi" type="number" id="bm-dmg-qty" placeholder="0" step="0.01" oninput="updateBMDamaged()"></div>
-        </div>
-        <div style="font-size:11px;color:var(--mu)" id="bm-dmg-avail"></div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-batchmix')">Cancel</button>
-      <button class="btn btn-success" onclick="saveBatchMix()">✓ Confirm Batch Mix</button>
-    </div>
-    <div id="bm-loss-box" style="display:none;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:6px;text-transform:uppercase">Batch Summary</div>
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--mu)">Total Inputs</span><span id="bm-total-input">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span style="color:var(--mu)">Mix Output</span><span id="bm-size-display">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px;font-weight:600"><span style="color:var(--org)">Process Loss</span><span id="bm-loss-val" style="color:var(--org)">—</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- SFG-2 Packing -->
-<div class="overlay" id="m-sfg2-prod">
-  <div class="modal modal-lg" style="width:720px">
-    <div class="modal-title">🎁 Pouch Packing (SFG-2)</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Pouch Type</label><select class="fs" id="s2-type" onchange="updateS2Preview()"></select></div>
-      <div class="form-group"><label class="fl">Output Qty (kg)</label><input class="fi" type="number" id="s2-qty" placeholder="e.g. 75" step="0.1" oninput="updateS2Preview()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="s2-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="s2-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="s2-batch">—</div></div>
-    <div class="bom-box" id="s2-preview" style="display:none"><div id="s2-preview-rows"></div></div>
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:8px;text-transform:uppercase">📦 Packing Material Consumed</div>
-      <div id="s2-pm-rows"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="addPMRow('s2-pm-rows','pm')">+ Add Material</button>
-    </div>
-    <!-- Pouch Roll consumption -->
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:8px;text-transform:uppercase">📦 Packing Material Consumed</div>
-      <div class="form-row">
-        <div class="form-group"><label class="fl">Pouch Roll (PM Item)</label>
-          <select class="fs" id="s2-pm-item"><option value="">-- Select if applicable --</option></select></div>
-        <div class="form-group"><label class="fl">Roll Consumed (kg)</label>
-          <input class="fi" type="number" id="s2-pm-qty" placeholder="e.g. 12.5" step="0.01"></div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-sfg2-prod')">Cancel</button>
-      <button class="btn btn-success" onclick="saveS2Prod()">✓ Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- FG Production -->
-<div class="overlay" id="m-fg-prod">
-  <div class="modal modal-lg" style="width:720px">
-    <div class="modal-title">🛍️ FG Packing — Retail Pack</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">SKU</label><select class="fs" id="fg-sku" onchange="updateFGPreview()"></select></div>
-      <div class="form-group"><label class="fl">Qty (units)</label><input class="fi" type="number" id="fg-qty" placeholder="e.g. 750" min="1" oninput="updateFGPreview()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="fg-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="fg-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="fg-batch">—</div></div>
-    <div class="bom-box" id="fg-preview" style="display:none"><div id="fg-preview-rows"></div></div>
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:8px;text-transform:uppercase">📦 Packing Materials Consumed</div>
-      <div id="fg-pm-rows"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px" onclick="addPMRow('fg-pm-rows','pm')">+ Add Material</button>
-    </div>
-    <!-- PM Consumption -->
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-top:10px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:8px;text-transform:uppercase">📦 Packing Materials Consumed</div>
-      <div id="fg-pm-rows">
-        <div class="form-row" style="margin-bottom:8px">
-          <div class="form-group"><label class="fl">PM Item</label>
-            <select class="fs fg-pm-item"><option value="">-- Select --</option></select></div>
-          <div class="form-group"><label class="fl">Qty (pcs/kg)</label>
-            <input class="fi" type="number" class="fg-pm-qty" placeholder="0" step="0.01"></div>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="addFGPMRow()">+ Add PM Row</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-fg-prod')">Cancel</button>
-      <button class="btn btn-success" onclick="saveFGProd()">✓ Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- WS Packing -->
-<div class="overlay" id="m-ws-prod">
-  <div class="modal modal-lg">
-    <div class="modal-title">📦 Wholesale Carton Packing</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">WS Pack Type</label><select class="fs" id="ws-type" onchange="updateWSPreview()"></select></div>
-      <div class="form-group"><label class="fl">Cartons</label><input class="fi" type="number" id="ws-qty" placeholder="e.g. 10" min="1" oninput="updateWSPreview()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ws-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="ws-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="ws-batch">—</div></div>
-    <div class="bom-box" id="ws-preview" style="display:none"><div id="ws-preview-rows"></div></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-ws-prod')">Cancel</button>
-      <button class="btn btn-success" onclick="saveWSProd()">✓ Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- Damaged Return -->
-<div class="overlay" id="m-damaged">
-  <div class="modal">
-    <div class="modal-title">⚠️ Record Damaged Candy Return</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Candy Type</label><select class="fs" id="dmg-type"></select></div>
-      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="dmg-qty" step="0.01"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="dmg-stage"><option>Production</option><option>SFG-2 Packing</option><option>FG Packing</option><option>Other</option></select></div>
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="dmg-date"></div>
-    </div>
-    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="dmg-notes"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-damaged')">Cancel</button>
-      <button class="btn btn-warn" onclick="saveDamaged()">Record Return</button>
-    </div>
-  </div>
-</div>
-
-<!-- Direct Issue -->
-<div class="overlay" id="m-directissue">
-  <div class="modal">
-    <div class="modal-title">📤 Direct Issue to Production Floor</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Item Type</label><select class="fs" id="di-type" onchange="updateDIItems()"><option value="rm">Raw Material</option><option value="pp">Powder / Paste</option></select></div>
-      <div class="form-group"><label class="fl">Item</label><select class="fs" id="di-item"></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="di-qty" step="0.01"></div>
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="di-date"></div>
-    </div>
-    <div class="form-group"><label class="fl">Purpose</label><input class="fi" id="di-purpose" placeholder="e.g. Sugar for machine cleaning"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-directissue')">Cancel</button>
-      <button class="btn btn-warn" onclick="saveDI()">Issue Stock</button>
-    </div>
-  </div>
-</div>
-
-<!-- Return to Stock -->
-<div class="overlay" id="m-return">
-  <div class="modal">
-    <div class="modal-title">↩️ Return Leftover to Stock</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Item Type</label><select class="fs" id="ret-type" onchange="updateRetItems()"><option value="rm">Raw Material</option><option value="pp">Powder / Paste</option></select></div>
-      <div class="form-group"><label class="fl">Item</label><select class="fs" id="ret-item"></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="ret-qty" step="0.01"></div>
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ret-date"></div>
-    </div>
-    <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="ret-stage"><option>Powder Making</option><option>Batch Mix</option><option>FG Packing</option><option>Other</option></select></div>
-    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="ret-notes"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-return')">Cancel</button>
-      <button class="btn btn-success" onclick="saveReturn()">Return to Stock</button>
-    </div>
-  </div>
-</div>
-
-<!-- Dispatch -->
-<div class="overlay" id="m-dispatch">
-  <div class="modal" style="width:900px;max-width:97vw">
-    <div class="modal-title">🚚 Dispatch</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Distributor</label>
-        <select class="fs" id="disp-dist"></select></div>
-      <div class="form-group"><label class="fl">Date</label>
-        <input class="fi" type="date" id="disp-date"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Invoice No.</label>
-        <input class="fi" id="disp-inv" placeholder="Invoice number"></div>
-      <div class="form-group"><label class="fl">Remarks</label>
-        <input class="fi" id="disp-remarks"></div>
-    </div>
-    <!-- Items Table -->
-    <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">Items</div>
-    <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;min-width:680px">
-        <thead>
-          <tr style="border-bottom:1px solid var(--bd)">
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:12%">Type</th>
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:32%">Item</th>
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:14%">Qty</th>
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:10%">Unit</th>
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:14%">= FG Units</th>
-            <th style="padding:5px 8px;font-size:10px;color:var(--mu);text-align:left;width:12%">Available</th>
-            <th style="width:6%"></th>
-          </tr>
-        </thead>
-        <tbody id="disp-rows"></tbody>
-      </table>
-    </div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addDispRow()">+ Add Item</button>
-    <!-- FIFO Preview -->
-    <div id="disp-fifo-preview" style="display:none;margin-top:12px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">FG Batches to be Consumed (FIFO)</div>
-      <div id="disp-fifo-rows"></div>
-    </div>
-    <!-- Totals -->
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;margin-top:12px;display:flex;gap:24px;flex-wrap:wrap">
-      <div style="font-size:12px"><span style="color:var(--mu)">Total Lines: </span><b id="disp-total-skus">0</b></div>
-      <div style="font-size:12px"><span style="color:var(--mu)">Total FG Units: </span><b id="disp-total-units">0</b></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-dispatch')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDispatch()">✓ Save Dispatch</button>
-    </div>
-  </div>
-</div>
-
-<!-- Add settings modals (minimal) -->
-<div class="overlay" id="m-add-fl"><div class="modal"><div class="modal-title">+ Add Flavour</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="afl-name" placeholder="e.g. Mango"></div><div class="form-group"><label class="fl">Brand</label><input class="fi" id="afl-brand" placeholder="e.g. MangoBlast"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Code (2 chars)</label><input class="fi" id="afl-code" maxlength="2" placeholder="MG"></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="afl-min" value="50"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-fl')">Cancel</button><button class="btn btn-primary" onclick="saveFL()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-rmi"><div class="modal"><div class="modal-title">+ Add RM Item</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="armi-name" placeholder="e.g. Sugar"></div><div class="form-group"><label class="fl">Category</label><select class="fs" id="armi-cat"><option>Dry</option><option>Fruit</option><option>Binder</option><option>Spice</option><option>Additive</option><option>Other</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Unit</label><select class="fs" id="armi-unit"><option value="kg">kg</option><option value="gm">gm</option><option value="ml">ml</option><option value="litre">litre</option><option value="pcs">pcs</option></select></div><div class="form-group"><label class="fl">Min Stock</label><input class="fi" type="number" id="armi-min" value="10"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-rmi')">Cancel</button><button class="btn btn-primary" onclick="saveRMI()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-ppi"><div class="modal"><div class="modal-title">+ Add Powder/Paste Item</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="appi-name" placeholder="e.g. Sugar Powder"></div><div class="form-group"><label class="fl">Type</label><select class="fs" id="appi-type"><option>Powder</option><option>Paste</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Made From (RM Item)</label><select class="fs" id="appi-from"></select></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="appi-min" value="20"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-ppi')">Cancel</button><button class="btn btn-primary" onclick="savePPI()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-s1t"><div class="modal"><div class="modal-title">+ Add Candy Type (SFG-1)</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="as1t-name" placeholder="e.g. Tams Loose Candy"></div><div class="form-group"><label class="fl">Flavour</label><select class="fs" id="as1t-fl"></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Code (2-3 chars)</label><input class="fi" id="as1t-code" placeholder="TM" maxlength="3"></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="as1t-min" value="20"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-s1t')">Cancel</button><button class="btn btn-primary" onclick="saveS1T()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-s2t"><div class="modal"><div class="modal-title">+ Add Pouch Type (SFG-2)</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="as2t-name" placeholder="e.g. 2g Pouch for Jars - TM"></div><div class="form-group"><label class="fl">SFG-1 Source</label><select class="fs" id="as2t-s1"></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="as2t-code" placeholder="KCTM02JSF2"></div><div class="form-group"><label class="fl">PW Code</label><input class="fi" id="as2t-pw" placeholder="04"></div></div>
-  <div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="as2t-min" value="5"></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-s2t')">Cancel</button><button class="btn btn-primary" onclick="saveS2T()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-sku"><div class="modal"><div class="modal-title">+ Add FG SKU</div>
-  <div class="form-row"><div class="form-group"><label class="fl">SKU Name</label><input class="fi" id="asku-name" placeholder="e.g. Tams 100g Pouch"></div><div class="form-group"><label class="fl">Flavour</label><select class="fs" id="asku-fl"></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Pack Type</label><select class="fs" id="asku-ptype"><option>Pouch</option><option>Display Box</option><option>Dangler</option><option>Jar</option><option>Combo</option></select></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="asku-code"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">SFG-2 Source</label><select class="fs" id="asku-s2"></select></div><div class="form-group"><label class="fl">kg per unit</label><input class="fi" type="number" id="asku-kgpu" value="0.1" step="0.001"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">TPN Code</label><input class="fi" id="asku-tpn" placeholder="P02"></div><div class="form-group"><label class="fl">Min Stock</label><input class="fi" type="number" id="asku-min" value="10"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-sku')">Cancel</button><button class="btn btn-primary" onclick="saveSKU()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-pm"><div class="modal"><div class="modal-title">+ Add Packing Material</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="apm-name"></div><div class="form-group"><label class="fl">Type</label><select class="fs" id="apm-type"><option>Pouch Roll</option><option>Box</option><option>Jar</option><option>Dangler</option><option>Carton</option><option>Label</option><option>Other</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Used For (Item Code)</label><input class="fi" id="apm-for"></div><div class="form-group"><label class="fl">Min Stock (pcs)</label><input class="fi" type="number" id="apm-min" value="50"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-pm')">Cancel</button><button class="btn btn-primary" onclick="savePM()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-ws"><div class="modal"><div class="modal-title">+ Add WS Pack Type</div>
-  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="aws-name"></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="aws-code"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Source FG SKU</label><select class="fs" id="aws-sku"></select></div><div class="form-group"><label class="fl">Units per Carton</label><input class="fi" type="number" id="aws-qty" value="6"></div></div>
-  <div class="form-group"><label class="fl">Min Stock (cartons)</label><input class="fi" type="number" id="aws-min" value="2"></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-ws')">Cancel</button><button class="btn btn-primary" onclick="saveWS()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-dist"><div class="modal"><div class="modal-title">+ Add Distributor</div>
-  <div class="form-group"><label class="fl">Name</label><input class="fi" id="adist-name"></div>
-  <div class="form-row"><div class="form-group"><label class="fl">City</label><input class="fi" id="adist-city"></div><div class="form-group"><label class="fl">Contact</label><input class="fi" id="adist-contact"></div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-dist')">Cancel</button><button class="btn btn-primary" onclick="saveDist()">Add</button></div>
-</div></div>
-
-<div class="overlay" id="m-add-icode"><div class="modal modal-lg"><div class="modal-title" id="icode-title">+ Add Item Code</div>
-  <input type="hidden" id="icode-edit">
-  <div class="form-row"><div class="form-group"><label class="fl">Stage</label><select class="fs" id="icode-stage"><option value="rm">RM</option><option value="sfg">SFG</option><option value="fg">FG</option><option value="ws">WS</option></select></div><div class="form-group"><label class="fl">Name</label><input class="fi" id="icode-name"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Flavour Code</label><select class="fs" id="icode-fc"><option value="TM">TM (Tams)</option><option value="CP">CP (Crazy Poms)</option><option value="M1">M1 (Mix)</option></select></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="icode-code" style="font-family:monospace"></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">UOM</label><select class="fs" id="icode-uom"><option>kg</option><option>Nos</option></select></div><div class="form-group"><label class="fl">Pack Type (FG)</label><select class="fs" id="icode-ptype"><option>Pouch</option><option>Display Box</option><option>Dangler</option><option>Jar</option><option>Combo</option></select></div></div>
-  <div class="form-row"><div class="form-group"><label class="fl">Batch Prefix</label><input class="fi" id="icode-prefix" style="font-family:monospace" placeholder="e.g. FTMP02"></div><div class="form-group"><label class="fl">TPN</label><input class="fi" id="icode-tpn" placeholder="e.g. P02"></div></div>
-  <div class="form-group"><label class="fl">Notes</label><input class="fi" id="icode-notes"></div>
-  <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH FORMAT PREVIEW</div><div class="batch-code" id="icode-preview">—</div></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-icode')">Cancel</button><button class="btn btn-primary" onclick="saveICode()">Save</button></div>
-</div></div>
-
-<!-- Candy Forming -->
-<div class="overlay" id="m-candy-forming">
-  <div class="modal modal-lg">
-    <div class="modal-title">🍭 Candy Forming</div>
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;margin-bottom:12px;font-size:11px;color:var(--mu)">
-      Input: Batch Mix · Output: Loose Candy + Damaged · Yield 1:1 · Loss tracked separately
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Batch Mix Type</label>
-        <select class="fs" id="cf-bmi" onchange="updateCFPreview()"></select></div>
-      <div class="form-group"><label class="fl">Batch Mix Input (kg)</label>
-        <input class="fi" type="number" id="cf-qty" placeholder="e.g. 80" step="0.01" oninput="updateCFLoss()"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="cf-date"></div>
-      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="cf-remarks"></div>
-    </div>
-    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">OUTPUT BATCH CODE</div><div class="batch-code" id="cf-batch">—</div></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
-      <div class="form-group"><label class="fl">✅ Good Candy Output (kg)</label>
-        <input class="fi" type="number" id="cf-good-qty" placeholder="e.g. 78" step="0.01" oninput="updateCFLoss()"></div>
-      <div class="form-group"><label class="fl">⚠️ Damaged Candy (kg)</label>
-        <input class="fi" type="number" id="cf-dmg-qty" placeholder="0" step="0.01" value="0" oninput="updateCFLoss()"></div>
-    </div>
-    <div id="cf-loss-box" style="display:none;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:8px">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:6px;text-transform:uppercase">Candy Forming Summary</div>
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--mu)">Batch Mix Input</span><span id="cf-input-disp">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span style="color:var(--grn)">Good Candy Output</span><span id="cf-good-disp" style="color:var(--grn)">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span style="color:var(--org)">Damaged → Store</span><span id="cf-dmg-disp" style="color:var(--org)">—</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px;font-weight:600"><span style="color:var(--red)">Process Loss</span><span id="cf-loss-disp" style="color:var(--red)">—</span></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-candy-forming')">Cancel</button>
-      <button class="btn btn-success" onclick="saveCandyForming()">✓ Confirm Forming Run</button>
-    </div>
-  </div>
-</div>
-
-<!-- Edit Batch Seq -->
-<div class="overlay" id="m-edit-seq"><div class="modal"><div class="modal-title">⚙️ Edit Batch Sequence</div>
-  <input type="hidden" id="seq-key">
-  <div class="form-group"><label class="fl">Batch Key</label><input class="fi" id="seq-key-disp" readonly style="font-family:monospace"></div>
-  <div class="form-group"><label class="fl">Current Sequence</label><input class="fi" id="seq-curr" readonly></div>
-  <div class="form-group"><label class="fl">Set New Number (next batch will use this)</label><input class="fi" type="number" id="seq-new" min="0"></div>
-  <div style="font-size:11px;color:var(--org);margin-bottom:12px">⚠ Use carefully — affects next batch code generated</div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-edit-seq')">Cancel</button><button class="btn btn-primary" onclick="saveSeq()">Update</button></div>
-</div></div>
-
-<!-- WS Dispatch -->
-<div class="overlay" id="m-wsdispatch">
-  <div class="modal modal-lg" style="width:700px">
-    <div class="modal-title">📦 WS Dispatch — Wholesale Cartons</div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">Distributor</label><select class="fs" id="wsd-dist"></select></div>
-      <div class="form-group"><label class="fl">WS Pack Type</label><select class="fs" id="wsd-type" onchange="updateWSDPreview()"></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="fl">No. of Cartons</label><input class="fi" type="number" id="wsd-qty" min="1" oninput="updateWSDPreview()"></div>
-      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="wsd-date"></div>
-    </div>
-    <div class="form-group"><label class="fl">Invoice No.</label><input class="fi" id="wsd-inv" placeholder="Invoice number"></div>
-    <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="wsd-remarks"></div>
-    <div class="batch-box">
-      <div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div>
-      <div class="batch-code" id="wsd-batch">—</div>
-    </div>
-    <div class="bom-box" id="wsd-preview" style="display:none">
-      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:6px;text-transform:uppercase">FG Batches to Consume (FIFO)</div>
-      <div id="wsd-preview-rows"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('m-wsdispatch')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveWSDDispatch()">📦 Dispatch</button>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- Print Modal -->
-<div class="overlay" id="m-print"><div class="modal modal-lg"><div class="modal-title" id="print-title">🖨️ Print</div>
-  <div id="print-field-sel" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
-  <div class="form-group"><label class="fl">Select Record</label><select class="fs" id="print-rec-sel" onchange="updatePrintPreview()"></select></div>
-  <div class="form-group"><label class="fl">Copies</label><select class="fs" style="width:80px" id="print-copies"><option>1</option><option>2</option><option>3</option></select></div>
-  <div id="print-preview-area" style="margin:12px 0"></div>
-  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-print')">Close</button><button class="btn btn-primary" onclick="doPrint()">🖨️ Print</button></div>
-</div></div>
-
-<div id="toast" class="toast"></div>
-
-
-
 
 <script>
+
 
 
 
@@ -1603,12 +987,7 @@ function fifoTable(batches, label) {
   return batches.map((b,i)=>`<tr style="${i===0?'background:rgba(91,143,255,.06)':''}"><td>${i===0?'<span class="fifo-tag">NEXT</span>':''}</td><td>${label}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td><td>${b.date}</td><td><b>${Number(b.qty).toFixed(3)}</b></td><td><span class="badge badge-ok">Available</span></td></tr>`).join('');
 }
 
-function renderRM() {
-  let cards='';
-  (S.rmItems||[]).forEach(i=>{ const st=rmiStock(i.id),ok=st>=i.minStock; cards+=`<div class="card"><div class="card-label">${i.category}</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(2)}</div><div class="card-unit">${i.unit} · min ${i.minStock}</div></div>`; });
-  document.getElementById('rm-cards').innerHTML=cards||'<div style="color:var(--mu);font-size:12px">No RM items — add in Settings</div>';
-  document.getElementById('rm-fifo').innerHTML=(S.rmItems||[]).map(i=>fifoTable(rmiBatches(i.id),i.name)).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
-}
+
 
 function renderPP() {
   let cards='';
@@ -3765,7 +3144,7 @@ function renderProdTab(tab) {
   if(tab==='pp') {
     const txns=(S.transactions||[]).filter(t=>t.type==='powder-prod').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-pp-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td style="font-size:10px;color:var(--mu)">${t.rmUsed||'-'}</td>
@@ -3776,7 +3155,7 @@ function renderProdTab(tab) {
   } else if(tab==='bm') {
     const txns=(S.transactions||[]).filter(t=>t.type==='batchmix-prod').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-bm-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td>${Number(t.qty).toFixed(2)}</td>
@@ -3786,7 +3165,7 @@ function renderProdTab(tab) {
   } else if(tab==='cf') {
     const txns=(S.transactions||[]).filter(t=>t.type==='candy-forming').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-cf-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td style="font-size:10px;color:var(--mu)">${t.rmUsed||'-'}</td>
@@ -3797,7 +3176,7 @@ function renderProdTab(tab) {
   } else if(tab==='s2') {
     const txns=(S.transactions||[]).filter(t=>t.type==='sfg2-prod').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-s2-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td style="font-size:10px;color:var(--mu)">${t.rmUsed||'-'}</td>
@@ -3807,7 +3186,7 @@ function renderProdTab(tab) {
   } else if(tab==='fg') {
     const txns=(S.transactions||[]).filter(t=>t.type==='fg-prod').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-fg-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td style="font-size:10px;color:var(--mu)">${t.sfgUsed||'-'}</td>
@@ -3817,7 +3196,7 @@ function renderProdTab(tab) {
   } else if(tab==='ws') {
     const txns=(S.transactions||[]).filter(t=>t.type==='ws-prod').sort((a,b)=>b.ts-a.ts);
     const el=document.getElementById('prod-ws-log');
-    if(el) el.innerHTML=txns.map(t=>`<tr>
+    if(el) el.innerHTML=txns.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
       <td>${t.date}</td><td><b>${t.itemName}</b></td>
       <td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td>
       <td style="font-size:10px;color:var(--mu)">${t.fgUsed||'-'}</td>
@@ -4230,6 +3609,309 @@ function editPM(id){
   save(); renderSettPM(); toast('✅ Packing material updated');
 }
 
+
+
+// ══════════════════════════════════════════════════════
+//  ITEM MOVEMENT — #1
+// ══════════════════════════════════════════════════════
+
+let _movementItemId = null, _movementItemType = null, _movementItemName = '';
+
+function showMovement(itemId, itemType, itemName) {
+  _movementItemId = itemId;
+  _movementItemType = itemType;
+  _movementItemName = itemName;
+  const titleEl = document.getElementById('movement-title');
+  if(titleEl) titleEl.textContent = '📋 ' + itemName + ' — Movement';
+  const periodEl = document.getElementById('movement-period');
+  if(periodEl) periodEl.value = '30';
+  renderMovement();
+  openModal('m-movement');
+}
+
+function renderMovement() {
+  const days = parseInt(document.getElementById('movement-period')?.value)||30;
+  const cutoff = days > 0 ? Date.now() - days*24*60*60*1000 : 0;
+  const id = _movementItemId, type = _movementItemType;
+  let rows = [], totalIn = 0, totalOut = 0;
+
+  const txns = (S.transactions||[])
+    .filter(t => t.itemId===id && (cutoff===0 || t.ts>=cutoff))
+    .sort((a,b)=>a.ts-b.ts);
+
+  txns.forEach(t => {
+    let inQty='', outQty='', typeLabel='', ref='', color='';
+    switch(t.type) {
+      case 'purchase':
+        inQty=Number(t.qty).toFixed(3); typeLabel='Purchase'; ref=t.invoice||t.supplier||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
+      case 'powder-prod':
+        if(type==='ppItem'){ inQty=Number(t.qty).toFixed(3); typeLabel='PP Production'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); }
+        else { outQty=Number(t.totalInput||t.qty).toFixed(3); typeLabel='PP Used'; ref=t.batchCode||''; color='var(--red)'; totalOut+=Number(t.totalInput||t.qty); }
+        break;
+      case 'batchmix-prod':
+        inQty=Number(t.qty).toFixed(3); typeLabel='Batch Mix'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
+      case 'candy-forming':
+        inQty=Number(t.qty).toFixed(3); typeLabel='Candy Forming'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
+      case 'sfg2-prod':
+        inQty=Number(t.qty).toFixed(3); typeLabel='Pouch Packing'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
+      case 'fg-prod':
+        inQty=Number(t.qty); typeLabel='FG Packing'; ref=t.batchCode||''; color='var(--grn)'; totalIn+=Number(t.qty); break;
+      case 'dispatch':
+        outQty=Number(t.fgUnits||t.qty); typeLabel='Dispatch'; ref=t.invoice||t.distName||''; color='var(--red)'; totalOut+=Number(t.fgUnits||t.qty); break;
+      case 'damaged-return':
+        outQty=Number(t.qty).toFixed(3); typeLabel='Damaged'; ref=t.batchCode||''; color='var(--org)'; totalOut+=Number(t.qty); break;
+      case 'direct-issue':
+        outQty=Number(t.qty).toFixed(3); typeLabel='Direct Issue'; ref=t.remarks||''; color='var(--org)'; totalOut+=Number(t.qty); break;
+      default:
+        typeLabel=t.type; ref=t.batchCode||'';
+        if(t.qty>0){inQty=Number(t.qty).toFixed(3);totalIn+=Number(t.qty);}
+    }
+    rows.push(`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer" title="Click for details">
+      <td>${t.date}</td>
+      <td><span class="badge badge-ok" style="background:${color}20;color:${color}">${typeLabel}</span></td>
+      <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
+      <td style="color:var(--grn);font-weight:600">${inQty||'—'}</td>
+      <td style="color:var(--red);font-weight:600">${outQty||'—'}</td>
+      <td style="font-size:11px;color:var(--mu)">${ref}</td>
+    </tr>`);
+  });
+
+  document.getElementById('movement-rows').innerHTML = rows.join('') ||
+    '<tr><td colspan="6" class="empty">No transactions in this period</td></tr>';
+  document.getElementById('movement-in').textContent = totalIn.toFixed(3);
+  document.getElementById('movement-out').textContent = totalOut.toFixed(3);
+  const net = totalIn - totalOut;
+  const netEl = document.getElementById('movement-net');
+  netEl.textContent = net.toFixed(3);
+  netEl.style.color = net >= 0 ? 'var(--grn)' : 'var(--red)';
+}
+
+// ── Make stock cards clickable to show movement ──
+function makeCardClickable(el, itemId, itemType, itemName) {
+  if(!el) return;
+  el.style.cursor = 'pointer';
+  el.title = 'Click to view movement';
+  el.onclick = () => showMovement(itemId, itemType, itemName);
+}
+
+// ══════════════════════════════════════════════════════
+//  ENTRY DETAIL — #5
+// ══════════════════════════════════════════════════════
+
+function showEntryDetail(ts) {
+  const t = (S.transactions||[]).find(x=>x.ts===ts);
+  if(!t) return;
+  const age = Date.now() - ts;
+  const thirtyMin = 30*60*1000;
+  const canDelete = AUTH.isAdmin || age <= thirtyMin;
+  const fields = {
+    'Date': t.date,
+    'Type': t.type,
+    'Item': t.itemName,
+    'Item Code': t.itemCode||'-',
+    'Batch Code': t.batchCode||'-',
+    'Quantity': t.qty,
+    'Unit': t.unit||'-',
+    'Supplier': t.supplier||'-',
+    'Invoice': t.invoice||'-',
+    'Distributor': t.distName||'-',
+    'RM Used': t.rmUsed||'-',
+    'PM Used': t.pmUsed||'-',
+    'Process Loss': t.processLoss!=null?t.processLoss+' kg':'-',
+    'Item Value': t.itemValue?'₹'+t.itemValue:'-',
+    'Alloc. Cost': t.allocCost?'₹'+t.allocCost:'-',
+    'Eff. Rate': t.effRate?'₹'+t.effRate:'-',
+    'Remarks': t.remarks||'-',
+  };
+  const body = Object.entries(fields)
+    .filter(([k,v])=>v&&v!=='-'&&v!=='undefined')
+    .map(([k,v])=>`<div style="display:flex;gap:12px;border-bottom:1px solid var(--bd);padding:4px 0">
+      <span style="width:140px;color:var(--mu);font-size:12px;flex-shrink:0">${k}</span>
+      <span style="font-weight:500">${v}</span>
+    </div>`).join('');
+  document.getElementById('entry-detail-body').innerHTML = body;
+  const delBtn = document.getElementById('entry-detail-del');
+  if(delBtn) {
+    if(canDelete) {
+      delBtn.style.display='';
+      delBtn.onclick = () => { closeModal('m-entry-detail'); deleteEntry(ts); };
+      delBtn.textContent = AUTH.isAdmin && age > thirtyMin ? '🗑 Admin Delete' : '✕ Delete';
+    } else {
+      delBtn.style.display='none';
+    }
+  }
+  openModal('m-entry-detail');
+}
+
+// ══════════════════════════════════════════════════════
+//  REPORTS — #4
+// ══════════════════════════════════════════════════════
+
+let _currentReport = '';
+
+function openReport(type) {
+  _currentReport = type;
+  const titles = {
+    stock:'Current Stock Report', purchase:'Purchase Report',
+    production:'Production Report', dispatch:'Dispatch Report',
+    loss:'Process Loss Report', valuation:'Inventory Valuation'
+  };
+  document.getElementById('report-title').textContent = titles[type]||type;
+  document.getElementById('report-output').style.display='';
+  runReport();
+  document.getElementById('report-output').scrollIntoView({behavior:'smooth'});
+}
+
+function runReport() {
+  const days = parseInt(document.getElementById('report-period')?.value)||30;
+  const cutoff = days > 0 ? Date.now() - days*24*60*60*1000 : 0;
+  const txns = (S.transactions||[]).filter(t=>cutoff===0||t.ts>=cutoff);
+  const body = document.getElementById('report-body');
+  switch(_currentReport) {
+    case 'stock': body.innerHTML = reportStock(); break;
+    case 'purchase': body.innerHTML = reportPurchase(txns); break;
+    case 'production': body.innerHTML = reportProduction(txns); break;
+    case 'dispatch': body.innerHTML = reportDispatch(txns); break;
+    case 'loss': body.innerHTML = reportLoss(txns); break;
+    case 'valuation': body.innerHTML = reportValuation(); break;
+  }
+}
+
+function reportStock() {
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">';
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Raw Materials</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Unit</th><th>Min</th></tr></thead><tbody>';
+  (S.rmItems||[]).forEach(i=>{ const st=rmiStock(i.id); html+=`<tr><td>${i.name}</td><td style="color:${st>=i.minStock?'var(--grn)':'var(--red)'}">${st.toFixed(3)}</td><td>${i.unit}</td><td>${i.minStock}</td></tr>`; });
+  html += '</tbody></table></div>';
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Powder & Paste</div></div><table><thead><tr><th>Item</th><th>Stock (kg)</th></tr></thead><tbody>';
+  (S.ppItems||[]).forEach(i=>{ html+=`<tr><td>${i.name}</td><td>${ppStock(i.id).toFixed(3)}</td></tr>`; });
+  html += '</tbody></table></div>';
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Loose Candy</div></div><table><thead><tr><th>Item</th><th>Stock (kg)</th></tr></thead><tbody>';
+  (S.sfg1Items||[]).forEach(i=>{ html+=`<tr><td>${i.name}</td><td>${s1Stock(i.id).toFixed(3)}</td></tr>`; });
+  html += '</tbody></table></div>';
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Finished Goods</div></div><table><thead><tr><th>SKU</th><th>Units</th></tr></thead><tbody>';
+  (S.skus||[]).forEach(s=>{ html+=`<tr><td>${s.name}</td><td>${fgStock(s.id)}</td></tr>`; });
+  html += '</tbody></table></div>';
+  html += '</div>';
+  return html;
+}
+
+function reportPurchase(txns) {
+  const rows = txns.filter(t=>t.type==='purchase').sort((a,b)=>b.ts-a.ts);
+  if(!rows.length) return '<div class="empty" style="padding:20px">No purchases in this period</div>';
+  const total = rows.reduce((s,t)=>s+(Number(t.itemValue)||0),0);
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Value</th><th>Eff. Rate</th></tr></thead><tbody>
+    ${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
+      <td>${t.date}</td><td>${t.invoice||'-'}</td><td>${t.supplier||'-'}</td><td><b>${t.itemName}</b></td>
+      <td>${Number(t.qty).toFixed(3)}</td><td>${t.unit||'-'}</td>
+      <td>₹${Number(t.rate||0).toFixed(2)}</td>
+      <td>₹${Number(t.itemValue||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+      <td style="color:var(--grn)">₹${Number(t.effRate||t.rate||0).toFixed(4)}</td>
+    </tr>`).join('')}
+    <tr style="font-weight:700;border-top:2px solid var(--bd)"><td colspan="7">Total</td><td>₹${total.toLocaleString('en-IN',{minimumFractionDigits:2})}</td><td></td></tr>
+  </tbody></table></div>`;
+}
+
+function reportProduction(txns) {
+  const types = ['powder-prod','batchmix-prod','candy-forming','sfg2-prod','fg-prod'];
+  const labels = {'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming','sfg2-prod':'Pouch Packing','fg-prod':'FG Packing'};
+  return types.map(type => {
+    const rows = txns.filter(t=>t.type===type).sort((a,b)=>b.ts-a.ts);
+    if(!rows.length) return '';
+    return `<div class="tbl-wrap" style="margin-bottom:12px">
+      <div class="tbl-head"><div class="tbl-title">${labels[type]}</div></div>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Batch</th><th>Output</th><th>Loss</th></tr></thead>
+      <tbody>${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
+        <td>${t.date}</td><td><b>${t.itemName}</b></td>
+        <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
+        <td>${Number(t.qty).toFixed(3)}</td>
+        <td style="color:var(--org)">${t.processLoss!=null?Number(t.processLoss).toFixed(3):'-'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }).join('');
+}
+
+function reportDispatch(txns) {
+  const rows = txns.filter(t=>t.type==='dispatch').sort((a,b)=>b.ts-a.ts);
+  if(!rows.length) return '<div class="empty" style="padding:20px">No dispatches in this period</div>';
+  return `<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Distributor</th><th>Item</th><th>Type</th><th>Qty</th><th>FG Units</th></tr></thead>
+    <tbody>${rows.map(t=>`<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
+      <td>${t.date}</td><td>${t.invoice||'-'}</td><td>${t.distName||'-'}</td><td><b>${t.itemName}</b></td>
+      <td>${t.dispType==='ws'?'WS Carton':'FG Unit'}</td>
+      <td>${t.qty}</td><td>${t.fgUnits||t.qty}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+function reportLoss(txns) {
+  const types = ['powder-prod','batchmix-prod','candy-forming'];
+  const labels = {'powder-prod':'Powder/Paste','batchmix-prod':'Batch Mix','candy-forming':'Candy Forming'};
+  return types.map(type => {
+    const rows = txns.filter(t=>t.type===type && t.processLoss!=null).sort((a,b)=>b.ts-a.ts);
+    if(!rows.length) return '';
+    const totalIn = rows.reduce((s,t)=>s+(Number(t.totalInput)||Number(t.qty)||0),0);
+    const totalLoss = rows.reduce((s,t)=>s+(Number(t.processLoss)||0),0);
+    const pct = totalIn>0?(totalLoss/totalIn*100).toFixed(2):0;
+    return `<div class="tbl-wrap" style="margin-bottom:12px">
+      <div class="tbl-head"><div class="tbl-title">${labels[type]} — Loss: ${totalLoss.toFixed(3)} kg (${pct}% of input)</div></div>
+      <table><thead><tr><th>Date</th><th>Item</th><th>Batch</th><th>Input</th><th>Output</th><th>Loss</th><th>Loss%</th></tr></thead>
+      <tbody>${rows.map(t=>{
+        const inp=Number(t.totalInput||t.bmInput||0); const loss=Number(t.processLoss||0);
+        return `<tr onclick="showEntryDetail(${t.ts})" style="cursor:pointer">
+          <td>${t.date}</td><td><b>${t.itemName}</b></td>
+          <td style="font-family:monospace;font-size:10px;color:var(--acc)">${t.batchCode||'-'}</td>
+          <td>${inp.toFixed(3)}</td><td>${Number(t.qty).toFixed(3)}</td>
+          <td style="color:var(--red);font-weight:600">${loss.toFixed(3)}</td>
+          <td style="color:var(--org)">${inp>0?(loss/inp*100).toFixed(1):0}%</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  }).join('') || '<div class="empty" style="padding:20px">No production with loss data in this period</div>';
+}
+
+function reportValuation() {
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">';
+  let grandTotal = 0;
+  // RM valuation
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Raw Materials</div></div><table><thead><tr><th>Item</th><th>Stock</th><th>Eff. Rate</th><th>Value</th></tr></thead><tbody>';
+  (S.rmItems||[]).forEach(i=>{
+    const st=rmiStock(i.id);
+    const batches=(S.rmiBatches||{})[i.id]||[];
+    const avgRate=batches.length?batches.reduce((s,b)=>(s+(b.rate||0)*b.qty),0)/batches.reduce((s,b)=>s+b.qty,1):0;
+    const val=+(st*avgRate).toFixed(2); grandTotal+=val;
+    html+=`<tr><td>${i.name}</td><td>${st.toFixed(3)} ${i.unit}</td><td>₹${avgRate.toFixed(4)}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+  // FG valuation
+  html += '<div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Finished Goods</div></div><table><thead><tr><th>SKU</th><th>Units</th><th>MRP</th><th>MRP Value</th></tr></thead><tbody>';
+  (S.skus||[]).forEach(s=>{
+    const st=fgStock(s.id); const val=+(st*(s.mrp||0)).toFixed(2); grandTotal+=val;
+    html+=`<tr><td>${s.name}</td><td>${st}</td><td>₹${s.mrp||0}</td><td>₹${val.toLocaleString('en-IN',{minimumFractionDigits:2})}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  html += `<div style="margin-top:12px;text-align:right;font-size:14px;font-weight:700">Grand Total (approx): ₹${grandTotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</div>`;
+  return html;
+}
+
+function printReport() {
+  const title = document.getElementById('report-title')?.textContent||'Report';
+  const body = document.getElementById('report-body')?.innerHTML||'';
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>${title}</title>
+    <style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}
+    h2{margin-bottom:16px}</style></head><body>
+    <h2>${title}</h2>${body}</body></html>`);
+  w.document.close(); w.print();
+}
+
+// ── Add movement links to stock pages ──
+const _origRenderRM = renderRM;
+function renderRM() {
+  _origRenderRM();
+  setTimeout(()=>{
+    document.querySelectorAll('#rm-tbl tr[data-id]').forEach(tr=>{
+      const id=tr.dataset.id; const item=(S.rmItems||[]).find(i=>i.id===id);
+      if(item){ tr.style.cursor='pointer'; tr.onclick=()=>showMovement(id,'rmItem',item.name); }
+    });
+  },100);
+}
 
 </script>
 </body>
