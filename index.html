@@ -436,13 +436,37 @@ select option{background:#1a1815}
 <!-- PRINT -->
 <div id="page-print" class="page">
   <div class="page-header"><div><div class="page-title">Print &amp; Reports</div></div></div>
-  <div class="quick-grid">
+  <!-- Print Actions -->
+  <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Print</div>
+  <div class="quick-grid" style="margin-bottom:24px">
     <div class="quick-card" onclick="openPrintModal('batch')"><div style="font-size:24px;margin-bottom:8px">🏷️</div><div style="font-weight:600">Batch Slip</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print batch details for any production run</div></div>
     <div class="quick-card" onclick="openPrintModal('stock')"><div style="font-size:24px;margin-bottom:8px">📦</div><div style="font-weight:600">Stock Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Current stock across all stages</div></div>
     <div class="quick-card" onclick="openPrintModal('production')"><div style="font-size:24px;margin-bottom:8px">📋</div><div style="font-weight:600">Production Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">All production runs</div></div>
     <div class="quick-card" onclick="openPrintModal('dispatch')"><div style="font-size:24px;margin-bottom:8px">🚚</div><div style="font-weight:600">Dispatch Note</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print for any dispatch</div></div>
   </div>
   <div id="print-area"></div>
+  <!-- Analytics Reports -->
+  <div style="font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:24px">Analytics</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px">
+    <div class="card" style="cursor:pointer" onclick="openReport('stock')"><div class="card-label">Report</div><div class="card-name">📦 Stock</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Current inventory</div></div>
+    <div class="card" style="cursor:pointer" onclick="openReport('purchase')"><div class="card-label">Report</div><div class="card-name">🛒 Purchase</div><div style="font-size:11px;color:var(--mu);margin-top:4px">All purchases</div></div>
+    <div class="card" style="cursor:pointer" onclick="openReport('production')"><div class="card-label">Report</div><div class="card-name">⚙️ Production</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Production runs</div></div>
+    <div class="card" style="cursor:pointer" onclick="openReport('dispatch')"><div class="card-label">Report</div><div class="card-name">🚚 Dispatch</div><div style="font-size:11px;color:var(--mu);margin-top:4px">All dispatches</div></div>
+    <div class="card" style="cursor:pointer" onclick="openReport('loss')"><div class="card-label">Report</div><div class="card-name">⚠️ Loss</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Process loss</div></div>
+    <div class="card" style="cursor:pointer" onclick="openReport('valuation')"><div class="card-label">Report</div><div class="card-name">💰 Valuation</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Inventory value</div></div>
+  </div>
+  <div id="report-output" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <b id="report-title" style="font-size:14px"></b>
+      <select class="fs" id="report-period" style="width:150px" onchange="runReport()">
+        <option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option><option value="365">Last 1 year</option><option value="0">All time</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨 Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('report-output').style.display='none'">✕ Close</button>
+    </div>
+    <div id="report-body"></div>
+  </div>
 </div>
 
 <!-- ITEM MASTER -->
@@ -961,7 +985,9 @@ select option{background:#1a1815}
     </div>
   </div>
 </div>
+
 <script>
+
 
 
 
@@ -4269,6 +4295,7 @@ function printReport(){
   w.document.write('<html><head><title>'+title+'</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}</style></head><body><h2>'+title+'</h2>'+body+'</body></html>');
   w.document.close(); w.print();
 }
+
 
 
 
