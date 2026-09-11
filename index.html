@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://script.google.com https://script.googleusercontent.com https://fonts.googleapis.com https://fonts.gstatic.com data: blob:;">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kravins — Inventory v10.1</title>
 <style>
@@ -168,6 +165,7 @@ select option{background:#1a1815}
     <div class="nav-item" onclick="go('rm')">🌿 Raw Material</div>
     <div class="nav-item" onclick="go('pp')">🫙 Powder &amp; Paste</div>
     <div class="nav-item" onclick="go('bm')">⚗️ Batch Mix Store</div>
+    <div class="nav-item" onclick="go('cf')">🍭 Candy Forming</div>
     <div class="nav-item" onclick="go('sfg1')">🍬 Loose Candy (SFG-1)</div>
     <div class="nav-item" onclick="go('sfg2')">🎁 Pouches (SFG-2)</div>
     <div class="nav-item" onclick="go('pm')">📦 Packing Material</div>
@@ -196,7 +194,7 @@ select option{background:#1a1815}
   <div class="page-header">
     <div><div class="page-title">Dashboard</div><div class="page-sub" id="dash-date"></div></div>
     <div class="btns-row">
-      <button class="btn btn-ghost btn-sm" onclick="openPurchaseModal()">+ Purchase</button>
+      <button class="btn btn-ghost btn-sm" onclick="go('purchase')">+ Purchase</button>
       <button class="btn btn-primary btn-sm" onclick="go('production')">⚙️ Production</button>
     </div>
   </div>
@@ -315,11 +313,8 @@ select option{background:#1a1815}
   </div>
   <div id="fg-cards" class="cards-grid"></div>
   <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">FG FIFO</div></div>
-    <table><thead><tr><th>Next</th><th>SKU</th><th>Item Code</th><th>Batch Code</th><th>Date</th><th>Qty (units)</th></tr></thead>
+    <table><thead><tr><th>Next</th><th>SKU</th><th>Item Code</th><th>Batch Code</th><th>Date</th><th>Qty</th></tr></thead>
     <tbody id="fg-fifo"></tbody></table></div>
-  <div class="tbl-wrap" style="margin-top:16px"><div class="tbl-head"><div class="tbl-title">FG Stock in WS Cartons</div></div>
-    <table><thead><tr><th>WS Pack Type</th><th>Source SKU</th><th>Units/Carton</th><th>FG Stock (units)</th><th>= Cartons</th><th>Remaining Units</th></tr></thead>
-    <tbody id="fg-carton-tbl"></tbody></table></div>
 </div>
 
 <!-- DAMAGED STORE -->
@@ -338,10 +333,10 @@ select option{background:#1a1815}
 <div id="page-purchase" class="page">
   <div class="page-header">
     <div><div class="page-title">Purchase Entry</div><div class="page-sub">Record incoming RM or packing material stock</div></div>
-    <button class="btn btn-primary btn-sm" onclick="openPurchaseModal()">+ New Purchase</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-buy-rmi')">+ New Purchase</button>
   </div>
   <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Purchase History</div></div>
-    <table><thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Item</th><th>Batch</th><th>Qty</th><th>Unit</th><th>Rate (₹)</th><th>Item Value (₹)</th><th>Alloc. Cost (₹)</th><th>Eff. Rate (₹)</th></tr></thead>
+    <table><thead><tr><th>Date</th><th>Category</th><th>Item</th><th>Batch Code</th><th>Qty</th><th>Supplier</th><th>Invoice</th></tr></thead>
     <tbody id="purchase-log"></tbody></table></div>
 </div>
 
@@ -353,37 +348,37 @@ select option{background:#1a1815}
     <div class="stage-tab" id="st-bm" onclick="prodTab('bm',this)">1b — Batch Mix</div>
     <div class="stage-tab" id="st-cf" onclick="prodTab('cf',this)">1c — Candy Forming</div>
     <div class="stage-tab" id="st-s2" onclick="prodTab('s2',this)">2 — Pouch Packing</div>
-    <div class="stage-tab" id="st-fg" onclick="prodTab('fg',this)">3 — FG Packing</div>
-    <div class="stage-tab" id="st-ws" onclick="prodTab('ws',this)">4 — WS Cartons</div>
+    <div class="stage-tab" id="st-fg" onclick="prodTab('fg',this)">Stage 3 — FG Packing</div>
+    <div class="stage-tab" id="st-ws" onclick="prodTab('ws',this)">Stage 4 — WS Cartons</div>
   </div>
   <div id="prod-pp">
     <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Powder / Paste Runs</div>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-pp-prod')">+ New Run</button></div>
-      <table><thead><tr><th>Date</th><th>Output</th><th>Batch Code</th><th>Inputs Used</th><th>Input Qty</th><th>Output Qty</th><th>Loss</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Output</th><th>Batch Code</th><th>RM Used</th><th>Qty (kg)</th></tr></thead>
       <tbody id="prod-pp-log"></tbody></table></div>
   </div>
   <div id="prod-bm" style="display:none">
     <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Batch Mix — Candy Production</div>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-batchmix')">+ New Batch</button></div>
-      <table><thead><tr><th>Date</th><th>Mix Type</th><th>Batch Code</th><th>Output (kg)</th><th>Inputs Used</th><th>Process Loss (kg)</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Candy Type</th><th>Batch Code</th><th>Size (kg)</th><th>Ingredients Used</th><th>Damaged Used</th></tr></thead>
       <tbody id="prod-bm-log"></tbody></table></div>
   </div>
   <div id="prod-cf" style="display:none">
     <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Candy Forming Runs</div>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-candy-forming')">+ New Run</button></div>
-      <table><thead><tr><th>Date</th><th>Output Candy</th><th>Batch Code</th><th>Batch Mix Input</th><th>Candy Output</th><th>Damaged</th><th>Loss</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Output Candy</th><th>Batch Code</th><th>Batch Mix Used</th><th>Qty (kg)</th></tr></thead>
       <tbody id="prod-cf-log"></tbody></table></div>
   </div>
   <div id="prod-s2" style="display:none">
     <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Pouch Packing</div>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-sfg2-prod')">+ New Run</button></div>
-      <table><thead><tr><th>Date</th><th>Pouch Type</th><th>Batch Code</th><th>Candy Input</th><th>Output (kg)</th><th>Pouch Roll Used</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>Pouch Type</th><th>Batch Code</th><th>Candy Used</th><th>Qty (kg)</th></tr></thead>
       <tbody id="prod-s2-log"></tbody></table></div>
   </div>
   <div id="prod-fg" style="display:none">
     <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">FG Production</div>
       <button class="btn btn-primary btn-sm" onclick="openModal('m-fg-prod')">+ New FG Run</button></div>
-      <table><thead><tr><th>Date</th><th>SKU</th><th>Batch Code</th><th>Pouches Input</th><th>Units Out</th><th>PM Consumed</th></tr></thead>
+      <table><thead><tr><th>Date</th><th>SKU</th><th>Batch Code</th><th>Pouches Used</th><th>Units</th></tr></thead>
       <tbody id="prod-fg-log"></tbody></table></div>
   </div>
   <div id="prod-ws" style="display:none">
@@ -419,15 +414,13 @@ select option{background:#1a1815}
 <!-- DISPATCH -->
 <div id="page-dispatch" class="page">
   <div class="page-header">
-    <div><div class="page-title">Dispatch</div><div class="page-sub">Outgoing goods · FG units or WS cartons · FIFO consumed</div></div>
-    <button class="btn btn-primary btn-sm" onclick="openDispatchModal()">+ New Dispatch</button>
+    <div><div class="page-title">Dispatch</div><div class="page-sub">Outgoing goods · FIFO batch consumed</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-dispatch')">+ New Dispatch</button>
   </div>
   <div class="tbl-wrap"><div class="tbl-head"><div class="tbl-title">Dispatch History</div></div>
-    <table><thead><tr><th>Date</th><th>Invoice</th><th>Distributor</th><th>Item</th><th>Type</th><th>Qty</th><th>Units</th><th>Batch Used</th></tr></thead>
+    <table><thead><tr><th>Date</th><th>Invoice</th><th>Distributor</th><th>SKU</th><th>Batch</th><th>Qty</th></tr></thead>
     <tbody id="dispatch-log"></tbody></table></div>
 </div>
-
-
 
 <!-- LEDGER -->
 <div id="page-ledger" class="page">
@@ -442,73 +435,505 @@ select option{background:#1a1815}
 
 <!-- PRINT -->
 <div id="page-print" class="page">
-  <div class="page-header"><div class="page-title">Print / Reports</div></div>
-  <!-- Report Cards -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:24px">
-    <div class="card" style="cursor:pointer" onclick="openReport('stock')">
-      <div class="card-label">Stock Report</div>
-      <div class="card-name">Current Stock</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">All items with current qty</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
-    </div>
-    <div class="card" style="cursor:pointer" onclick="openReport('purchase')">
-      <div class="card-label">Purchase Report</div>
-      <div class="card-name">Purchases</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">All purchase entries with cost</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
-    </div>
-    <div class="card" style="cursor:pointer" onclick="openReport('production')">
-      <div class="card-label">Production Report</div>
-      <div class="card-name">Production Log</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">All production runs by stage</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
-    </div>
-    <div class="card" style="cursor:pointer" onclick="openReport('dispatch')">
-      <div class="card-label">Dispatch Report</div>
-      <div class="card-name">Dispatches</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">All dispatch entries by distributor</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
-    </div>
-    <div class="card" style="cursor:pointer" onclick="openReport('loss')">
-      <div class="card-label">Loss Report</div>
-      <div class="card-name">Process Loss</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">Loss at each production stage</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
-    </div>
-    <div class="card" style="cursor:pointer" onclick="openReport('valuation')">
-      <div class="card-label">Valuation Report</div>
-      <div class="card-name">Inventory Value</div>
-      <div style="font-size:11px;color:var(--mu);margin-top:6px">Stock value at effective cost</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%">Generate →</button>
+  <div class="page-header"><div><div class="page-title">Print &amp; Reports</div></div></div>
+  <div class="quick-grid">
+    <div class="quick-card" onclick="openPrintModal('batch')"><div style="font-size:24px;margin-bottom:8px">🏷️</div><div style="font-weight:600">Batch Slip</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print batch details for any production run</div></div>
+    <div class="quick-card" onclick="openPrintModal('stock')"><div style="font-size:24px;margin-bottom:8px">📦</div><div style="font-weight:600">Stock Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Current stock across all stages</div></div>
+    <div class="quick-card" onclick="openPrintModal('production')"><div style="font-size:24px;margin-bottom:8px">📋</div><div style="font-weight:600">Production Report</div><div style="font-size:11px;color:var(--mu);margin-top:4px">All production runs</div></div>
+    <div class="quick-card" onclick="openPrintModal('dispatch')"><div style="font-size:24px;margin-bottom:8px">🚚</div><div style="font-weight:600">Dispatch Note</div><div style="font-size:11px;color:var(--mu);margin-top:4px">Print for any dispatch</div></div>
+  </div>
+  <div id="print-area"></div>
+</div>
+
+<!-- ITEM MASTER -->
+<div id="page-itemmaster" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Item &amp; Batch Code Master</div></div>
+    <div class="btns-row">
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-add-icode')">+ Add Item Code</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportIM()">↓ Export CSV</button>
     </div>
   </div>
-  <!-- Report Output -->
-  <div id="report-output" style="display:none">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <b id="report-title" style="font-size:14px"></b>
-      <select class="fs" id="report-period" style="width:150px" onchange="runReport()">
-        <option value="7">Last 7 days</option>
-        <option value="30" selected>Last 30 days</option>
-        <option value="90">Last 90 days</option>
-        <option value="365">Last 1 year</option>
-        <option value="0">All time</option>
-      </select>
-      <button class="btn btn-ghost btn-sm" onclick="printReport()">🖨 Print</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('report-output').style.display='none'">✕ Close</button>
-    </div>
-    <div id="report-body"></div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="stage-tab active" onclick="imTab('rm',this)">RM</button>
+    <button class="stage-tab" onclick="imTab('sfg',this)">SFG</button>
+    <button class="stage-tab" onclick="imTab('fg',this)">FG</button>
+    <button class="stage-tab" onclick="imTab('ws',this)">WS Cartons</button>
+    <button class="stage-tab" onclick="imTab('seq',this)">Batch Sequences</button>
+  </div>
+  <div id="im-rm"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>UOM</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-rm-tbl"></tbody></table></div></div>
+  <div id="im-sfg" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>UOM</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-sfg-tbl"></tbody></table></div></div>
+  <div id="im-fg" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>FC</th><th>Item Code</th><th>Pack Type</th><th>Batch Prefix</th><th>TPN</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-fg-tbl"></tbody></table></div></div>
+  <div id="im-ws" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Item Code</th><th>Batch Prefix</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="im-ws-tbl"></tbody></table></div></div>
+  <div id="im-seq" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>Batch Key</th><th>Current Seq</th><th>Last Code</th><th class="admin-only">Action</th></tr></thead><tbody id="im-seq-tbl"></tbody></table></div></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="page-header"><div class="page-title">Settings</div></div>
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="stage-tab active" onclick="settTab('flavours',this)">Flavours</button>
+    <button class="stage-tab" onclick="settTab('rmi',this)">RM Items</button>
+    <button class="stage-tab" onclick="settTab('ppi',this)">Powder/Paste</button>
+    <button class="stage-tab" onclick="settTab('bmi',this)">Batch Mix Types</button>
+    <button class="stage-tab" onclick="settTab('s1t',this)">Candy Types</button>
+    <button class="stage-tab" onclick="settTab('bom',this)">BOM</button>
+    <button class="stage-tab" onclick="settTab('s2t',this)">Pouch Types</button>
+    <button class="stage-tab" onclick="settTab('skus',this)">FG SKUs</button>
+    <button class="stage-tab" onclick="settTab('pm',this)">Packing Mat.</button>
+    <button class="stage-tab" onclick="settTab('ws',this)">WS Packs</button>
+    <button class="stage-tab" onclick="settTab('dist',this)">Distributors</button>
+  </div>
+  <div id="sett-flavours">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-fl')">+ Add Flavour</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Flavour</th><th>Brand</th><th>Code</th><th>Status</th></tr></thead><tbody id="sett-fl-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-rmi" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-rmi')">+ Add RM Item</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-rmi-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-ppi" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-ppi')">+ Add Powder/Paste</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Made From</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-ppi-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-bmi" style="display:none">
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Linked Candy Type</th><th>Current Stock (kg)</th><th>Min Stock</th></tr></thead><tbody id="sett-bmi-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-s1t" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-s1t')">+ Add Candy Type</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Flavour</th><th>Code</th><th>Min Stock</th><th>Current Stock</th></tr></thead><tbody id="sett-s1t-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-bom" style="display:none"><div id="sett-bom-content"></div></div>
+  <div id="sett-s2t" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-s2t')">+ Add Pouch Type</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>SFG-1 Source</th><th>Item Code</th><th>PW Code</th><th>Stock (kg)</th></tr></thead><tbody id="sett-s2t-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-skus" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-sku')">+ Add FG SKU</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>SKU</th><th>Flavour</th><th>Type</th><th>Item Code</th><th>SFG-2 Source</th><th>kg/unit</th></tr></thead><tbody id="sett-sku-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-pm" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-pm')">+ Add PM Item</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Used For</th><th>Min Stock</th><th>Stock</th></tr></thead><tbody id="sett-pm-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-ws" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-ws')">+ Add WS Pack</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Source SKU</th><th>Qty/Carton</th><th>Item Code</th></tr></thead><tbody id="sett-ws-tbl"></tbody></table></div>
+  </div>
+  <div id="sett-dist" style="display:none">
+    <div class="btns-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openModal('m-add-dist')">+ Add Distributor</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>City</th><th>Contact</th><th></th></tr></thead><tbody id="sett-dist-tbl"></tbody></table></div>
   </div>
 </div>
 
-<!-- Item Movement Modal -->
+<!-- ADMIN PANEL -->
+<div id="page-adminpanel" class="page">
+  <div class="page-header"><div class="page-title">Admin Panel</div></div>
+  <div class="tbl-wrap" style="max-width:480px"><div class="tbl-head"><div class="tbl-title">🔐 Change Passwords</div></div>
+    <div style="padding:20px">
+      <div class="form-group"><label class="fl">Admin Password</label><div style="display:flex;gap:8px"><input class="fi" type="password" id="new-admin-pwd" placeholder="New admin password"><button class="btn btn-primary btn-sm" onclick="changePwd('admin')">Save</button></div></div>
+      <div class="form-group"><label class="fl">User Password</label><div style="display:flex;gap:8px"><input class="fi" type="password" id="new-user-pwd" placeholder="New user password"><button class="btn btn-primary btn-sm" onclick="changePwd('user')">Save</button></div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ══ MODALS ══ -->
+
+<!-- Buy RM Item -->
+<div class="overlay" id="m-buy-rmi">
+  <div class="modal">
+    <div class="modal-title">🛒 Purchase Raw Material</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Item</label><select class="fs" id="buy-rmi-item" onchange="updateBuyRMIBatch()"></select></div>
+      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="buy-rmi-qty" placeholder="e.g. 70" step="0.1" oninput="updateBuyRMIBatch()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="buy-rmi-date"></div>
+      <div class="form-group"><label class="fl">Supplier</label><input class="fi" id="buy-rmi-sup" placeholder="Supplier name"></div>
+    </div>
+    <div class="form-group"><label class="fl">Invoice No.</label><input class="fi" id="buy-rmi-inv" placeholder="Invoice number"></div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">AUTO BATCH CODE</div><div class="batch-code" id="buy-rmi-batch">—</div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-buy-rmi')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBuyRMI()">Save Purchase</button>
+    </div>
+  </div>
+</div>
+
+<!-- Buy PM -->
+<div class="overlay" id="m-buy-pm">
+  <div class="modal">
+    <div class="modal-title">📦 Add Packing Material Stock</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Item</label><select class="fs" id="buy-pm-item"></select></div>
+      <div class="form-group"><label class="fl">Qty (pcs)</label><input class="fi" type="number" id="buy-pm-qty" placeholder="e.g. 500" min="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="buy-pm-date"></div>
+      <div class="form-group"><label class="fl">Supplier</label><input class="fi" id="buy-pm-sup"></div>
+    </div>
+    <div class="form-group"><label class="fl">Invoice</label><input class="fi" id="buy-pm-inv"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-buy-pm')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBuyPM()">Add Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- PP Production -->
+<div class="overlay" id="m-pp-prod">
+  <div class="modal modal-lg">
+    <div class="modal-title">🫙 Powder / Paste Making</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Output Item</label><select class="fs" id="pp-out" onchange="updatePPPreview()"></select></div>
+      <div class="form-group"><label class="fl">Output Qty (kg)</label><input class="fi" type="number" id="pp-qty" placeholder="e.g. 65" step="0.1" oninput="updatePPPreview()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="pp-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="pp-remarks"></div>
+    </div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="pp-batch">—</div></div>
+    <div class="bom-box" id="pp-preview" style="display:none">
+      <div style="font-size:10px;font-weight:600;color:var(--mu);margin-bottom:6px;text-transform:uppercase">RM Consumed (FIFO)</div>
+      <div id="pp-preview-rows"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-pp-prod')">Cancel</button>
+      <button class="btn btn-success" onclick="savePPProd()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- PP Return -->
+<div class="overlay" id="m-pp-return">
+  <div class="modal">
+    <div class="modal-title">↩️ Return Powder/Paste to Stock</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Item</label><select class="fs" id="ppr-item"></select></div>
+      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="ppr-qty" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ppr-date"></div>
+      <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="ppr-stage"><option>Batch Mix</option><option>Direct Issue Return</option><option>Other</option></select></div>
+    </div>
+    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="ppr-notes"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-pp-return')">Cancel</button>
+      <button class="btn btn-success" onclick="savePPReturn()">Return to Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Mix -->
+<div class="overlay" id="m-batchmix">
+  <div class="modal modal-lg">
+    <div class="modal-title">⚗️ Batch Mix — Candy Production</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Candy Type</label><select class="fs" id="bm-type" onchange="updateBMBOM()"></select></div>
+      <div class="form-group"><label class="fl">Batch Size (kg)</label><input class="fi" type="number" id="bm-size" placeholder="e.g. 80" step="0.1" oninput="updateBMBOM()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="bm-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="bm-remarks"></div>
+    </div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="bm-batch">—</div></div>
+    <div id="bm-bom" style="display:none">
+      <div style="font-size:10px;font-weight:600;color:var(--mu);margin:12px 0 6px;text-transform:uppercase">Ingredients — Edit quantities as needed</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+        <thead><tr><th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Ingredient</th><th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">BOM (kg)</th><th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Actual (kg)</th><th style="padding:5px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--bd);color:var(--mu)">Available</th></tr></thead>
+        <tbody id="bm-bom-rows"></tbody>
+      </table>
+      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--org);margin-bottom:8px">⚠️ ADD DAMAGED CANDY (optional)</div>
+        <div class="form-row">
+          <div><label class="fl">Type</label><select class="fs" id="bm-dmg-type" onchange="updateBMDamaged()"></select></div>
+          <div><label class="fl">Qty (kg)</label><input class="fi" type="number" id="bm-dmg-qty" placeholder="0" step="0.01" oninput="updateBMDamaged()"></div>
+        </div>
+        <div style="font-size:11px;color:var(--mu)" id="bm-dmg-avail"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-batchmix')">Cancel</button>
+      <button class="btn btn-success" onclick="saveBatchMix()">✓ Confirm Batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- SFG-2 Packing -->
+<div class="overlay" id="m-sfg2-prod">
+  <div class="modal modal-lg">
+    <div class="modal-title">🎁 Pouch Packing (SFG-2)</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Pouch Type</label><select class="fs" id="s2-type" onchange="updateS2Preview()"></select></div>
+      <div class="form-group"><label class="fl">Qty to Pack (kg)</label><input class="fi" type="number" id="s2-qty" placeholder="e.g. 75" step="0.1" oninput="updateS2Preview()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="s2-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="s2-remarks"></div>
+    </div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="s2-batch">—</div></div>
+    <div class="bom-box" id="s2-preview" style="display:none"><div id="s2-preview-rows"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-sfg2-prod')">Cancel</button>
+      <button class="btn btn-success" onclick="saveS2Prod()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- FG Production -->
+<div class="overlay" id="m-fg-prod">
+  <div class="modal modal-lg">
+    <div class="modal-title">🛍️ FG Production — Retail Pack</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">SKU</label><select class="fs" id="fg-sku" onchange="updateFGPreview()"></select></div>
+      <div class="form-group"><label class="fl">Qty (units)</label><input class="fi" type="number" id="fg-qty" placeholder="e.g. 750" min="1" oninput="updateFGPreview()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="fg-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="fg-remarks"></div>
+    </div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="fg-batch">—</div></div>
+    <div class="bom-box" id="fg-preview" style="display:none"><div id="fg-preview-rows"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-fg-prod')">Cancel</button>
+      <button class="btn btn-success" onclick="saveFGProd()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- WS Packing -->
+<div class="overlay" id="m-ws-prod">
+  <div class="modal modal-lg">
+    <div class="modal-title">📦 Wholesale Carton Packing</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">WS Pack Type</label><select class="fs" id="ws-type" onchange="updateWSPreview()"></select></div>
+      <div class="form-group"><label class="fl">Cartons</label><input class="fi" type="number" id="ws-qty" placeholder="e.g. 10" min="1" oninput="updateWSPreview()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ws-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="ws-remarks"></div>
+    </div>
+    <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH CODE</div><div class="batch-code" id="ws-batch">—</div></div>
+    <div class="bom-box" id="ws-preview" style="display:none"><div id="ws-preview-rows"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-ws-prod')">Cancel</button>
+      <button class="btn btn-success" onclick="saveWSProd()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Damaged Return -->
+<div class="overlay" id="m-damaged">
+  <div class="modal">
+    <div class="modal-title">⚠️ Record Damaged Candy Return</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Candy Type</label><select class="fs" id="dmg-type"></select></div>
+      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="dmg-qty" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="dmg-stage"><option>Production</option><option>SFG-2 Packing</option><option>FG Packing</option><option>Other</option></select></div>
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="dmg-date"></div>
+    </div>
+    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="dmg-notes"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-damaged')">Cancel</button>
+      <button class="btn btn-warn" onclick="saveDamaged()">Record Return</button>
+    </div>
+  </div>
+</div>
+
+<!-- Direct Issue -->
+<div class="overlay" id="m-directissue">
+  <div class="modal">
+    <div class="modal-title">📤 Direct Issue to Production Floor</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Item Type</label><select class="fs" id="di-type" onchange="updateDIItems()"><option value="rm">Raw Material</option><option value="pp">Powder / Paste</option></select></div>
+      <div class="form-group"><label class="fl">Item</label><select class="fs" id="di-item"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="di-qty" step="0.01"></div>
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="di-date"></div>
+    </div>
+    <div class="form-group"><label class="fl">Purpose</label><input class="fi" id="di-purpose" placeholder="e.g. Sugar for machine cleaning"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-directissue')">Cancel</button>
+      <button class="btn btn-warn" onclick="saveDI()">Issue Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Return to Stock -->
+<div class="overlay" id="m-return">
+  <div class="modal">
+    <div class="modal-title">↩️ Return Leftover to Stock</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Item Type</label><select class="fs" id="ret-type" onchange="updateRetItems()"><option value="rm">Raw Material</option><option value="pp">Powder / Paste</option></select></div>
+      <div class="form-group"><label class="fl">Item</label><select class="fs" id="ret-item"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Qty (kg)</label><input class="fi" type="number" id="ret-qty" step="0.01"></div>
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="ret-date"></div>
+    </div>
+    <div class="form-group"><label class="fl">From Stage</label><select class="fs" id="ret-stage"><option>Powder Making</option><option>Batch Mix</option><option>FG Packing</option><option>Other</option></select></div>
+    <div class="form-group"><label class="fl">Notes</label><input class="fi" id="ret-notes"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-return')">Cancel</button>
+      <button class="btn btn-success" onclick="saveReturn()">Return to Stock</button>
+    </div>
+  </div>
+</div>
+
+<!-- Dispatch -->
+<div class="overlay" id="m-dispatch">
+  <div class="modal">
+    <div class="modal-title">🚚 New Dispatch</div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Distributor</label><select class="fs" id="disp-dist"></select></div>
+      <div class="form-group"><label class="fl">SKU</label><select class="fs" id="disp-sku" onchange="updateDispatch()"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Qty</label><input class="fi" type="number" id="disp-qty" min="1" oninput="updateDispatch()"></div>
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="disp-date"></div>
+    </div>
+    <div class="form-group"><label class="fl">Invoice No.</label><input class="fi" id="disp-inv"></div>
+    <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="disp-remarks"></div>
+    <div id="disp-fifo-info" style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:var(--mu)"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-dispatch')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDispatch()">Save Dispatch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add settings modals (minimal) -->
+<div class="overlay" id="m-add-fl"><div class="modal"><div class="modal-title">+ Add Flavour</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="afl-name" placeholder="e.g. Mango"></div><div class="form-group"><label class="fl">Brand</label><input class="fi" id="afl-brand" placeholder="e.g. MangoBlast"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Code (2 chars)</label><input class="fi" id="afl-code" maxlength="2" placeholder="MG"></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="afl-min" value="50"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-fl')">Cancel</button><button class="btn btn-primary" onclick="saveFL()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-rmi"><div class="modal"><div class="modal-title">+ Add RM Item</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="armi-name" placeholder="e.g. Sugar"></div><div class="form-group"><label class="fl">Category</label><select class="fs" id="armi-cat"><option>Dry</option><option>Fruit</option><option>Binder</option><option>Spice</option><option>Additive</option><option>Other</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Unit</label><select class="fs" id="armi-unit"><option value="kg">kg</option><option value="gm">gm</option><option value="ml">ml</option><option value="litre">litre</option><option value="pcs">pcs</option></select></div><div class="form-group"><label class="fl">Min Stock</label><input class="fi" type="number" id="armi-min" value="10"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-rmi')">Cancel</button><button class="btn btn-primary" onclick="saveRMI()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-ppi"><div class="modal"><div class="modal-title">+ Add Powder/Paste Item</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="appi-name" placeholder="e.g. Sugar Powder"></div><div class="form-group"><label class="fl">Type</label><select class="fs" id="appi-type"><option>Powder</option><option>Paste</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Made From (RM Item)</label><select class="fs" id="appi-from"></select></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="appi-min" value="20"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-ppi')">Cancel</button><button class="btn btn-primary" onclick="savePPI()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-s1t"><div class="modal"><div class="modal-title">+ Add Candy Type (SFG-1)</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="as1t-name" placeholder="e.g. Tams Loose Candy"></div><div class="form-group"><label class="fl">Flavour</label><select class="fs" id="as1t-fl"></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Code (2-3 chars)</label><input class="fi" id="as1t-code" placeholder="TM" maxlength="3"></div><div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="as1t-min" value="20"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-s1t')">Cancel</button><button class="btn btn-primary" onclick="saveS1T()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-s2t"><div class="modal"><div class="modal-title">+ Add Pouch Type (SFG-2)</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="as2t-name" placeholder="e.g. 2g Pouch for Jars - TM"></div><div class="form-group"><label class="fl">SFG-1 Source</label><select class="fs" id="as2t-s1"></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="as2t-code" placeholder="KCTM02JSF2"></div><div class="form-group"><label class="fl">PW Code</label><input class="fi" id="as2t-pw" placeholder="04"></div></div>
+  <div class="form-group"><label class="fl">Min Stock (kg)</label><input class="fi" type="number" id="as2t-min" value="5"></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-s2t')">Cancel</button><button class="btn btn-primary" onclick="saveS2T()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-sku"><div class="modal"><div class="modal-title">+ Add FG SKU</div>
+  <div class="form-row"><div class="form-group"><label class="fl">SKU Name</label><input class="fi" id="asku-name" placeholder="e.g. Tams 100g Pouch"></div><div class="form-group"><label class="fl">Flavour</label><select class="fs" id="asku-fl"></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Pack Type</label><select class="fs" id="asku-ptype"><option>Pouch</option><option>Display Box</option><option>Dangler</option><option>Jar</option><option>Combo</option></select></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="asku-code"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">SFG-2 Source</label><select class="fs" id="asku-s2"></select></div><div class="form-group"><label class="fl">kg per unit</label><input class="fi" type="number" id="asku-kgpu" value="0.1" step="0.001"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">TPN Code</label><input class="fi" id="asku-tpn" placeholder="P02"></div><div class="form-group"><label class="fl">Min Stock</label><input class="fi" type="number" id="asku-min" value="10"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-sku')">Cancel</button><button class="btn btn-primary" onclick="saveSKU()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-pm"><div class="modal"><div class="modal-title">+ Add Packing Material</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="apm-name"></div><div class="form-group"><label class="fl">Type</label><select class="fs" id="apm-type"><option>Pouch Roll</option><option>Box</option><option>Jar</option><option>Dangler</option><option>Carton</option><option>Label</option><option>Other</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Used For (Item Code)</label><input class="fi" id="apm-for"></div><div class="form-group"><label class="fl">Min Stock (pcs)</label><input class="fi" type="number" id="apm-min" value="50"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-pm')">Cancel</button><button class="btn btn-primary" onclick="savePM()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-ws"><div class="modal"><div class="modal-title">+ Add WS Pack Type</div>
+  <div class="form-row"><div class="form-group"><label class="fl">Name</label><input class="fi" id="aws-name"></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="aws-code"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Source FG SKU</label><select class="fs" id="aws-sku"></select></div><div class="form-group"><label class="fl">Units per Carton</label><input class="fi" type="number" id="aws-qty" value="6"></div></div>
+  <div class="form-group"><label class="fl">Min Stock (cartons)</label><input class="fi" type="number" id="aws-min" value="2"></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-ws')">Cancel</button><button class="btn btn-primary" onclick="saveWS()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-dist"><div class="modal"><div class="modal-title">+ Add Distributor</div>
+  <div class="form-group"><label class="fl">Name</label><input class="fi" id="adist-name"></div>
+  <div class="form-row"><div class="form-group"><label class="fl">City</label><input class="fi" id="adist-city"></div><div class="form-group"><label class="fl">Contact</label><input class="fi" id="adist-contact"></div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-dist')">Cancel</button><button class="btn btn-primary" onclick="saveDist()">Add</button></div>
+</div></div>
+
+<div class="overlay" id="m-add-icode"><div class="modal modal-lg"><div class="modal-title" id="icode-title">+ Add Item Code</div>
+  <input type="hidden" id="icode-edit">
+  <div class="form-row"><div class="form-group"><label class="fl">Stage</label><select class="fs" id="icode-stage"><option value="rm">RM</option><option value="sfg">SFG</option><option value="fg">FG</option><option value="ws">WS</option></select></div><div class="form-group"><label class="fl">Name</label><input class="fi" id="icode-name"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Flavour Code</label><select class="fs" id="icode-fc"><option value="TM">TM (Tams)</option><option value="CP">CP (Crazy Poms)</option><option value="M1">M1 (Mix)</option></select></div><div class="form-group"><label class="fl">Item Code</label><input class="fi" id="icode-code" style="font-family:monospace"></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">UOM</label><select class="fs" id="icode-uom"><option>kg</option><option>Nos</option></select></div><div class="form-group"><label class="fl">Pack Type (FG)</label><select class="fs" id="icode-ptype"><option>Pouch</option><option>Display Box</option><option>Dangler</option><option>Jar</option><option>Combo</option></select></div></div>
+  <div class="form-row"><div class="form-group"><label class="fl">Batch Prefix</label><input class="fi" id="icode-prefix" style="font-family:monospace" placeholder="e.g. FTMP02"></div><div class="form-group"><label class="fl">TPN</label><input class="fi" id="icode-tpn" placeholder="e.g. P02"></div></div>
+  <div class="form-group"><label class="fl">Notes</label><input class="fi" id="icode-notes"></div>
+  <div class="batch-box"><div style="font-size:10px;color:var(--mu);margin-bottom:4px">BATCH FORMAT PREVIEW</div><div class="batch-code" id="icode-preview">—</div></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-add-icode')">Cancel</button><button class="btn btn-primary" onclick="saveICode()">Save</button></div>
+</div></div>
+
+<!-- Candy Forming -->
+<div class="overlay" id="m-candy-forming">
+  <div class="modal modal-lg">
+    <div class="modal-title">🍭 Candy Forming</div>
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--mu)">
+      Input: Batch Mix Store · Output: Loose Candy (SFG-1) · Yield: 1:1 · Damaged candy → use "Record Damaged" after
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Batch Mix Input</label>
+        <select class="fs" id="cf-bmi" onchange="updateCFPreview()"></select></div>
+      <div class="form-group"><label class="fl">Qty to Form (kg)</label>
+        <input class="fi" type="number" id="cf-qty" placeholder="e.g. 80" step="0.1" oninput="updateCFPreview()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="fl">Date</label><input class="fi" type="date" id="cf-date"></div>
+      <div class="form-group"><label class="fl">Remarks</label><input class="fi" id="cf-remarks" placeholder="Optional"></div>
+    </div>
+    <div class="batch-box">
+      <div style="font-size:10px;color:var(--mu);margin-bottom:4px">OUTPUT BATCH CODE</div>
+      <div class="batch-code" id="cf-batch">—</div>
+    </div>
+    <div class="bom-box" id="cf-preview" style="display:none">
+      <div id="cf-preview-rows"></div>
+    </div>
+    <div style="background:#2e1a08;border:1px solid var(--org);border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--org)">
+      ⚠️ After forming, record any damaged/misshapen candy via <b>Damaged Store → Record Return</b>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-candy-forming')">Cancel</button>
+      <button class="btn btn-success" onclick="saveCandyForming()">✓ Confirm Forming Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Batch Seq -->
+<div class="overlay" id="m-edit-seq"><div class="modal"><div class="modal-title">⚙️ Edit Batch Sequence</div>
+  <input type="hidden" id="seq-key">
+  <div class="form-group"><label class="fl">Batch Key</label><input class="fi" id="seq-key-disp" readonly style="font-family:monospace"></div>
+  <div class="form-group"><label class="fl">Current Sequence</label><input class="fi" id="seq-curr" readonly></div>
+  <div class="form-group"><label class="fl">Set New Number (next batch will use this)</label><input class="fi" type="number" id="seq-new" min="0"></div>
+  <div style="font-size:11px;color:var(--org);margin-bottom:12px">⚠ Use carefully — affects next batch code generated</div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-edit-seq')">Cancel</button><button class="btn btn-primary" onclick="saveSeq()">Update</button></div>
+</div></div>
+
+<!-- Print Modal -->
+<div class="overlay" id="m-print"><div class="modal modal-lg"><div class="modal-title" id="print-title">🖨️ Print</div>
+  <div id="print-field-sel" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
+  <div class="form-group"><label class="fl">Select Record</label><select class="fs" id="print-rec-sel" onchange="updatePrintPreview()"></select></div>
+  <div class="form-group"><label class="fl">Copies</label><select class="fs" style="width:80px" id="print-copies"><option>1</option><option>2</option><option>3</option></select></div>
+  <div id="print-preview-area" style="margin:12px 0"></div>
+  <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-print')">Close</button><button class="btn btn-primary" onclick="doPrint()">🖨️ Print</button></div>
+</div></div>
+
+<div id="toast" class="toast"></div>
 
 
-<!-- Entry Detail Modal -->
-
-
-
-
-
+<!-- Movement Modal -->
 <div class="overlay" id="m-movement">
   <div class="modal" style="width:820px;max-width:97vw">
     <div class="modal-title" id="movement-title">📋 Movement</div>
@@ -524,6 +949,8 @@ select option{background:#1a1815}
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-movement')">Close</button></div>
   </div>
 </div>
+
+<!-- Entry Detail Modal -->
 <div class="overlay" id="m-entry-detail">
   <div class="modal" style="width:540px;max-width:97vw">
     <div class="modal-title">📄 Entry Detail</div>
@@ -534,12 +961,8 @@ select option{background:#1a1815}
     </div>
   </div>
 </div>
-
-
-
-
-
 <script>
+
 
 
 
@@ -3846,6 +4269,7 @@ function printReport(){
   w.document.write('<html><head><title>'+title+'</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 10px;font-size:12px}th{background:#f5f5f5}</style></head><body><h2>'+title+'</h2>'+body+'</body></html>');
   w.document.close(); w.print();
 }
+
 
 
 
