@@ -174,7 +174,8 @@ select option{background:#1a1815}
     <div class="nav-item" onclick="go('production')">⚙️ Production</div>
     <div class="nav-item" onclick="go('directissue')">📤 Direct Issue</div>
     <div class="nav-item" onclick="go('returns')">↩️ Returns</div>
-    <div class="nav-item" onclick="go('dispatch')">🚚 Dispatch</div>
+    <div class="nav-item" onclick="go('dispatch')">🚚 FG Dispatch</div>
+    <div class="nav-item" onclick="go('wsdispatch')">📦 WS Dispatch</div>
     <div class="nav-sec">Reports &amp; Admin</div>
     <div class="nav-item" onclick="go('ledger')">📋 Stock Ledger</div>
     <div class="nav-item" onclick="go('print')">🖨️ Print / Reports</div>
@@ -926,7 +927,6 @@ function go(id) {
   updateBadges();
 }
 function renderPage(id) {
-  if(!id) return;
   const fn = {
     dashboard:   renderDashboard,
     rm:          renderRM,
@@ -970,18 +970,18 @@ function renderDashboard() {
   let alerts='';
   (S.rmItems||[]).forEach(i=>{ const st=rmiStock(i.id); if(st<i.minStock)alerts+=`<div class="alert alert-warning">⚠ Low RM: <b>${i.name}</b> — ${st.toFixed(2)} ${i.unit}</div>`; });
   (S.sfg1Items||[]).forEach(i=>{ const st=s1Stock(i.id); if(st<i.minStock)alerts+=`<div class="alert alert-warning">⚠ Low Candy: <b>${i.name}</b> — ${st.toFixed(2)} kg</div>`; });
-  document.getElementById('dash-alerts').innerHTML =alerts;
+  document.getElementById('dash-alerts').innerHTML=alerts;
   let cards='';
   (S.rmItems||[]).slice(0,4).forEach(i=>{ const st=rmiStock(i.id); cards+=`<div class="card"><div class="card-label">RM</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${st>=i.minStock?'var(--grn)':'var(--red)'}">${st.toFixed(1)}</div><div class="card-unit">kg</div></div>`; });
   (S.sfg1Items||[]).forEach(i=>{ const st=s1Stock(i.id); cards+=`<div class="card"><div class="card-label">SFG-1</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${st>=i.minStock?'var(--grn)':'var(--red)'}">${st.toFixed(1)}</div><div class="card-unit">kg</div></div>`; });
-  document.getElementById('dash-cards').innerHTML =cards;
-  document.getElementById('dash-fg').innerHTML =(S.skus||[]).map(sku=>{
+  document.getElementById('dash-cards').innerHTML=cards;
+  document.getElementById('dash-fg').innerHTML=(S.skus||[]).map(sku=>{
     const fl=(S.flavours||[]).find(f=>f.id===sku.flavourId);
     const st=fgStock(sku.id), ok=st>=sku.minStock;
     return `<tr><td><b>${sku.name}</b></td><td><span class="fp fp-${sku.flavourId==='fl-tam'?'tam':'pom'}">${fl?.brand||'-'}</span></td><td>${sku.packType}</td><td><span style="font-family:monospace;font-size:11px;color:var(--acc)">${sku.itemCode}</span></td><td><b>${st}</b></td><td><span class="badge ${ok?'badge-ok':'badge-low'}">${ok?'OK':'Low'}</span></td></tr>`;
   }).join('')||'<tr><td colspan="6" class="empty">No SKUs configured</td></tr>';
   const recent=[...(S.transactions||[])].sort((a,b)=>b.ts-a.ts).slice(0,10);
-  document.getElementById('dash-recent').innerHTML =recent.map(t=>`<tr><td><span class="badge badge-info">${t.type}</span></td><td style="font-size:11px;color:var(--mu)">${t.stage||'-'}</td><td>${t.itemName||'-'}</td><td>${t.qty}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td style="font-size:11px;color:var(--mu)">${t.date||'-'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No activity yet</td></tr>';
+  document.getElementById('dash-recent').innerHTML=recent.map(t=>`<tr><td><span class="badge badge-info">${t.type}</span></td><td style="font-size:11px;color:var(--mu)">${t.stage||'-'}</td><td>${t.itemName||'-'}</td><td>${t.qty}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td style="font-size:11px;color:var(--mu)">${t.date||'-'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No activity yet</td></tr>';
 }
 
 function fifoTable(batches, label) {
@@ -991,40 +991,75 @@ function fifoTable(batches, label) {
 
 
 
+
+function renderRM() {
+  const cardsEl = (document.getElementById('rm-cards')||{innerHTML:''});
+  const fifoEl  = (document.getElementById('rm-fifo') ||{innerHTML:''});
+  const tblEl   = (document.getElementById('rm-tbl')  ||{innerHTML:''});
+  let cards = '';
+  (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
+    const st=rmiStock(i.id), ok=st>=i.minStock;
+    cards+=`<div class="card" style="cursor:pointer" onclick="showMovement('${i.id}','rmItem','${i.name}')">
+      <div class="card-label">Raw Material</div>
+      <div class="card-name">${i.name}</div>
+      <div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(3)}</div>
+      <div class="card-unit">${i.unit} · min ${i.minStock}</div>
+    </div>`;
+  });
+  cardsEl.innerHTML = cards || '<div style="color:var(--mu);font-size:12px">No RM items</div>';
+  // FIFO table
+  let fifoRows = '';
+  let first = true;
+  (S.rmItems||[]).filter(i=>i.status!=='discontinued').forEach(i=>{
+    const batches = (S.rmiBatches||{})[i.id]||[];
+    batches.forEach((b,idx)=>{
+      fifoRows+=`<tr style="cursor:pointer" onclick="showMovement('${i.id}','rmItem','${i.name}')">
+        <td>${idx===0?'<span class="fifo-tag">NEXT</span>':''}</td>
+        <td>${i.name}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td>
+        <td>${b.date}</td>
+        <td><b>${Number(b.qty).toFixed(3)}</b></td>
+        <td><span class="badge badge-ok">Active</span></td>
+      </tr>`;
+    });
+  });
+  fifoEl.innerHTML = fifoRows || '<tr><td colspan="6" class="empty">No RM batches yet</td></tr>';
+}
+
 function renderPP() {
   let cards='';
   (S.ppItems||[]).forEach(i=>{ const st=ppStock(i.id),ok=st>=i.minStock; cards+=`<div class="card"><div class="card-label">${i.type}</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(2)}</div><div class="card-unit">kg · min ${i.minStock}</div></div>`; });
-  (document.getElementById('pp-cards')||{innerHTML:''}).innerHTML =cards||'<div style="color:var(--mu);font-size:12px">No powder/paste items yet</div>';
-  (document.getElementById('pp-fifo')||{innerHTML:''}).innerHTML =(S.ppItems||[]).map(i=>ppBatches(i.id).map((b,idx)=>`<tr style="${idx===0?'background:rgba(91,143,255,.06)':''}"><td>${idx===0?'<span class="fifo-tag">NEXT</span>':''}</td><td>${i.name}</td><td>${i.type}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td><td>${b.date}</td><td><b>${Number(b.qty).toFixed(3)}</b></td></tr>`).join('')||`<tr><td>—</td><td>${i.name}</td><td>${i.type}</td><td>—</td><td>—</td><td style="color:var(--red)">0</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
+  document.getElementById('pp-cards').innerHTML=cards||'<div style="color:var(--mu);font-size:12px">No powder/paste items yet</div>';
+  document.getElementById('pp-fifo').innerHTML=(S.ppItems||[]).map(i=>ppBatches(i.id).map((b,idx)=>`<tr style="${idx===0?'background:rgba(91,143,255,.06)':''}"><td>${idx===0?'<span class="fifo-tag">NEXT</span>':''}</td><td>${i.name}</td><td>${i.type}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td><td>${b.date}</td><td><b>${Number(b.qty).toFixed(3)}</b></td></tr>`).join('')||`<tr><td>—</td><td>${i.name}</td><td>${i.type}</td><td>—</td><td>—</td><td style="color:var(--red)">0</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
 }
 
 function renderSFG1() {
   let cards='';
   (S.bmItems||[]).forEach(i=>{ const st=bmStock(i.id); cards+=`<div class="card"><div class="card-label">Batch Mix</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${st>0?'var(--grn)':'var(--mu)'}">${st.toFixed(1)}</div><div class="card-unit">kg</div></div>`; });
   (S.sfg1Items||[]).forEach(i=>{ const st=s1Stock(i.id),ok=st>=i.minStock; cards+=`<div class="card"><div class="card-label">Loose Candy</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(2)}</div><div class="card-unit">kg · min ${i.minStock}</div></div>`; });
-  (document.getElementById('sfg1-cards')||{innerHTML:''}).innerHTML =cards||'<div style="color:var(--mu);font-size:12px">No candy types yet</div>';
-  (document.getElementById('sfg1-fifo')||{innerHTML:''}).innerHTML =(S.sfg1Items||[]).map(i=>fifoTable(s1Batches(i.id),i.name)).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
+  document.getElementById('sfg1-cards').innerHTML=cards||'<div style="color:var(--mu);font-size:12px">No candy types yet</div>';
+  document.getElementById('sfg1-fifo').innerHTML=(S.sfg1Items||[]).map(i=>fifoTable(s1Batches(i.id),i.name)).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
 }
 
 function renderSFG2() {
   let cards='';
   (S.sfg2Types||[]).forEach(t=>{ const st=s2Stock(t.id),ok=st>=t.minStock; cards+=`<div class="card"><div class="card-label">Pouch</div><div class="card-name">${t.name}</div><div class="card-val" style="color:${ok?'var(--grn)':'var(--red)'}">${st.toFixed(2)}</div><div class="card-unit">kg · min ${t.minStock}</div></div>`; });
-  (document.getElementById('sfg2-cards')||{innerHTML:''}).innerHTML =cards||'<div style="color:var(--mu);font-size:12px">No pouch types yet</div>';
-  (document.getElementById('sfg2-fifo')||{innerHTML:''}).innerHTML =(S.sfg2Types||[]).map(t=>fifoTable(s2Batches(t.id),t.name)).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
+  document.getElementById('sfg2-cards').innerHTML=cards||'<div style="color:var(--mu);font-size:12px">No pouch types yet</div>';
+  document.getElementById('sfg2-fifo').innerHTML=(S.sfg2Types||[]).map(t=>fifoTable(s2Batches(t.id),t.name)).join('')||'<tr><td colspan="6" class="empty">No batches yet</td></tr>';
 }
 
 function renderPM() {
   let cards='';
   (S.packingMaterials||[]).forEach(pm=>{ const ok=pm.stock>=pm.minStock; cards+=`<div class="quick-card" onclick="openModal('m-buy-pm')"><div style="font-size:12px;font-weight:600">${pm.name}</div><div style="font-size:11px;color:var(--mu)">${pm.type}</div><div style="font-size:20px;font-weight:700;color:${ok?'var(--grn)':'var(--red)'};margin-top:8px">${pm.stock}</div><div style="font-size:10px;color:var(--mu)">min ${pm.minStock} pcs</div></div>`; });
-  document.getElementById('pm-cards').innerHTML =cards;
-  document.getElementById('pm-tbl').innerHTML =(S.packingMaterials||[]).map(pm=>`<tr><td><b>${pm.name}</b></td><td>${pm.type}</td><td style="font-size:11px;color:var(--mu)">${pm.usedFor}</td><td><b>${pm.stock}</b></td><td>${pm.minStock}</td><td><span class="badge ${pm.stock>=pm.minStock?'badge-ok':'badge-low'}">${pm.stock>=pm.minStock?'OK':'Low'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="quickAddPM('${pm.id}')">+ Add</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">No packing materials</td></tr>';
+  document.getElementById('pm-cards').innerHTML=cards;
+  document.getElementById('pm-tbl').innerHTML=(S.packingMaterials||[]).map(pm=>`<tr><td><b>${pm.name}</b></td><td>${pm.type}</td><td style="font-size:11px;color:var(--mu)">${pm.usedFor}</td><td><b>${pm.stock}</b></td><td>${pm.minStock}</td><td><span class="badge ${pm.stock>=pm.minStock?'badge-ok':'badge-low'}">${pm.stock>=pm.minStock?'OK':'Low'}</span></td><td><button class="btn btn-ghost btn-sm" onclick="quickAddPM('${pm.id}')">+ Add</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">No packing materials</td></tr>';
 }
 
 function renderFG() {
   let cards='';
   (S.skus||[]).slice(0,6).forEach(s=>{ const st=fgStock(s.id); cards+=`<div class="card"><div class="card-label">${s.packType}</div><div class="card-name">${s.name}</div><div class="card-val" style="color:${st>=s.minStock?'var(--grn)':'var(--red)'}">${st}</div><div class="card-unit">units</div></div>`; });
-  (document.getElementById('fg-cards')||{innerHTML:''}).innerHTML =cards;
-  (document.getElementById('fg-fifo')||{innerHTML:''}).innerHTML =(S.skus||[]).flatMap(sku=>fgBatches(sku.id).map((b,i)=>`<tr style="${i===0?'background:rgba(91,143,255,.06)':''}"><td>${i===0?'<span class="fifo-tag">NEXT</span>':''}</td><td>${sku.name}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${sku.itemCode}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td><td>${b.date}</td><td><b>${b.qty}</b></td></tr>`)||[`<tr><td>—</td><td>${sku.name}</td><td style="font-family:monospace;font-size:11px;color:var(--mu)">${sku.itemCode}</td><td>—</td><td>—</td><td style="color:var(--red)">0</td></tr>`]).join('')||'<tr><td colspan="6" class="empty">No FG batches yet</td></tr>';
+  document.getElementById('fg-cards').innerHTML=cards;
+  document.getElementById('fg-fifo').innerHTML=(S.skus||[]).flatMap(sku=>fgBatches(sku.id).map((b,i)=>`<tr style="${i===0?'background:rgba(91,143,255,.06)':''}"><td>${i===0?'<span class="fifo-tag">NEXT</span>':''}</td><td>${sku.name}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${sku.itemCode}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${b.batchCode}</td><td>${b.date}</td><td><b>${b.qty}</b></td></tr>`)||[`<tr><td>—</td><td>${sku.name}</td><td style="font-family:monospace;font-size:11px;color:var(--mu)">${sku.itemCode}</td><td>—</td><td>—</td><td style="color:var(--red)">0</td></tr>`]).join('')||'<tr><td colspan="6" class="empty">No FG batches yet</td></tr>';
 }
 
 function renderBM() {
@@ -1052,9 +1087,9 @@ function renderSFG1Cards(el) {
 function renderDamaged() {
   let cards='';
   (S.sfg1Items||[]).forEach(i=>{ const st=dmgStock(i.id); cards+=`<div class="card" style="border-color:var(--org)"><div class="card-label">Damaged</div><div class="card-name">${i.name}</div><div class="card-val" style="color:${st>0?'var(--org)':'var(--mu)'}">${st.toFixed(2)}</div><div class="card-unit">kg available</div></div>`; });
-  (document.getElementById('damaged-cards')||{innerHTML:''}).innerHTML =cards||'<div style="color:var(--mu);font-size:12px">No candy types defined</div>';
+  document.getElementById('damaged-cards').innerHTML=cards||'<div style="color:var(--mu);font-size:12px">No candy types defined</div>';
   const logs=(S.transactions||[]).filter(t=>t.type==='damaged-return').sort((a,b)=>b.ts-a.ts);
-  document.getElementById('damaged-log').innerHTML =logs.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td>${t.stage||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No returns yet</td></tr>';
+  document.getElementById('damaged-log').innerHTML=logs.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td>${t.stage||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No returns yet</td></tr>';
 }
 
 
@@ -1074,14 +1109,14 @@ function renderDI() {
   document.getElementById('di-date').value=today();
   updateDIItems();
   const txns=(S.transactions||[]).filter(t=>t.type==='direct-issue').sort((a,b)=>b.ts-a.ts);
-  document.getElementById('di-log').innerHTML =txns.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No issues yet</td></tr>';
+  document.getElementById('di-log').innerHTML=txns.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No issues yet</td></tr>';
 }
 
 function renderReturns() {
   document.getElementById('ret-date').value=today();
   updateRetItems();
   const txns=(S.transactions||[]).filter(t=>t.type==='return-stock').sort((a,b)=>b.ts-a.ts);
-  document.getElementById('ret-log').innerHTML =txns.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td>${t.stage||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No returns yet</td></tr>';
+  document.getElementById('ret-log').innerHTML=txns.map(t=>`<tr><td>${t.date}</td><td>${t.itemName}</td><td>${t.stage||'-'}</td><td>${Number(t.qty).toFixed(3)}</td><td style="font-family:monospace;font-size:11px;color:var(--acc)">${t.batchCode||'-'}</td><td style="font-size:11px;color:var(--mu)">${t.remarks||'-'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">No returns yet</td></tr>';
 }
 
 
@@ -1099,7 +1134,7 @@ function renderLedgerSelects() {
 
 function renderLedger() {
   const val=document.getElementById('ledger-sel').value;
-  if(!val){ document.getElementById('ledger-tbl').innerHTML ='<tr><td colspan="7" class="empty">Select an item</td></tr>'; return; }
+  if(!val){ document.getElementById('ledger-tbl').innerHTML='<tr><td colspan="7" class="empty">Select an item</td></tr>'; return; }
   const [kind,id]=val.split(/-(.+)/);
   let itemName='', txns=[];
   if(kind==='rmi'){ const i=(S.rmItems||[]).find(x=>x.id===id); itemName=i?.name; txns=(S.transactions||[]).filter(t=>(t.type==='purchase'&&t.itemId===id)||(t.type==='powder-prod'&&(S.ppItems||[]).find(p=>p.id===t.itemId)?.madeFrom===id)||(t.type==='direct-issue'&&t.itemId===id&&t.stage==='RM')); }
@@ -1109,7 +1144,7 @@ function renderLedger() {
   else if(kind==='fg'){ const i=(S.skus||[]).find(x=>x.id===id); itemName=i?.name; txns=(S.transactions||[]).filter(t=>(t.type==='fg-prod'&&t.itemId===id)||(t.type==='dispatch'&&t.itemId===id)||(t.type==='ws-prod'&&(S.wsTypes||[]).find(w=>w.id===t.itemId)?.skuId===id)); }
   document.getElementById('ledger-title').textContent='📋 '+itemName;
   let bal=0;
-  document.getElementById('ledger-tbl').innerHTML =txns.sort((a,b)=>a.ts-b.ts).map(t=>{
+  document.getElementById('ledger-tbl').innerHTML=txns.sort((a,b)=>a.ts-b.ts).map(t=>{
     let inQ=0,outQ=0;
     if(t.type==='purchase'||t.type==='powder-prod'||t.type==='batchmix-prod'||t.type==='sfg2-prod'||t.type==='fg-prod') inQ=+Number(t.qty).toFixed(3);
     if(t.type==='dispatch'||t.type==='direct-issue') outQ=+Number(t.qty).toFixed(3);
@@ -1245,7 +1280,7 @@ function updatePPPreview() {
   if(!prev)return;
   if(!item||qty<=0||!rmItem){ prev.style.display='none'; return; }
   const avail=rmiStock(rmItem.id);
-  document.getElementById('pp-preview-rows').innerHTML =`<div class="bom-row"><span>🌿 ${rmItem.name} needed</span><span class="${avail>=qty?'ok':'warn'}">${qty.toFixed(2)} kg ${avail>=qty?'✓':'⚠ only '+avail.toFixed(2)+' kg available'}</span></div>`;
+  document.getElementById('pp-preview-rows').innerHTML=`<div class="bom-row"><span>🌿 ${rmItem.name} needed</span><span class="${avail>=qty?'ok':'warn'}">${qty.toFixed(2)} kg ${avail>=qty?'✓':'⚠ only '+avail.toFixed(2)+' kg available'}</span></div>`;
   prev.style.display='';
 }
 
@@ -1298,7 +1333,7 @@ function updateS2Preview() {
   if(!prev)return;
   if(!s2Id||qty<=0){ prev.style.display='none'; return; }
   const avail=s1?s1Stock(s1.id):0;
-  document.getElementById('s2-preview-rows').innerHTML =`<div class="bom-row"><span>🍬 ${s1?.name||'Loose Candy'} needed</span><span class="${avail>=qty?'ok':'warn'}">${qty.toFixed(2)} kg ${avail>=qty?'✓':'⚠ only '+avail.toFixed(2)+' kg available'}</span></div>`;
+  document.getElementById('s2-preview-rows').innerHTML=`<div class="bom-row"><span>🍬 ${s1?.name||'Loose Candy'} needed</span><span class="${avail>=qty?'ok':'warn'}">${qty.toFixed(2)} kg ${avail>=qty?'✓':'⚠ only '+avail.toFixed(2)+' kg available'}</span></div>`;
   prev.style.display='';
 }
 
@@ -1319,7 +1354,7 @@ function updateFGPreview() {
   const s2=(S.sfg2Types||[]).find(t=>t.id===sku.s2Id);
   const sfgNeeded=qty*sku.kgPU;
   const avail=s2?s2Stock(s2.id):0;
-  document.getElementById('fg-preview-rows').innerHTML =`<div class="bom-row"><span>🎁 ${s2?.name||'SFG-2 Pouches'} needed</span><span class="${avail>=sfgNeeded?'ok':'warn'}">${sfgNeeded.toFixed(3)} kg ${avail>=sfgNeeded?'✓':'⚠ only '+avail.toFixed(3)+' kg available'}</span></div>`;
+  document.getElementById('fg-preview-rows').innerHTML=`<div class="bom-row"><span>🎁 ${s2?.name||'SFG-2 Pouches'} needed</span><span class="${avail>=sfgNeeded?'ok':'warn'}">${sfgNeeded.toFixed(3)} kg ${avail>=sfgNeeded?'✓':'⚠ only '+avail.toFixed(3)+' kg available'}</span></div>`;
   prev.style.display='';
 }
 
@@ -1336,7 +1371,7 @@ function updateWSPreview() {
   if(!ws||qty<=0){ prev.style.display='none'; return; }
   const fgNeeded=qty*ws.qtyPC;
   const avail=sku?fgStock(sku.id):0;
-  document.getElementById('ws-preview-rows').innerHTML =`<div class="bom-row"><span>🛍️ ${sku?.name||'FG'} needed</span><span class="${avail>=fgNeeded?'ok':'warn'}">${fgNeeded} units (${qty} cartons × ${ws.qtyPC}) ${avail>=fgNeeded?'✓':'⚠ only '+avail+' available'}</span></div>`;
+  document.getElementById('ws-preview-rows').innerHTML=`<div class="bom-row"><span>🛍️ ${sku?.name||'FG'} needed</span><span class="${avail>=fgNeeded?'ok':'warn'}">${fgNeeded} units (${qty} cartons × ${ws.qtyPC}) ${avail>=fgNeeded?'✓':'⚠ only '+avail+' available'}</span></div>`;
   prev.style.display='';
 }
 
@@ -1451,7 +1486,7 @@ function discItem(collection, id, disc) {
 }
 
 function renderSettFL(){
-  (document.getElementById('sett-fl-tbl')||{innerHTML:''}).innerHTML =(S.flavours||[]).map((f,i)=>`<tr>
+  document.getElementById('sett-fl-tbl').innerHTML=(S.flavours||[]).map((f,i)=>`<tr>
     <td><b>${f.name}</b></td><td>${f.brand}</td>
     <td><span style="font-family:monospace;background:var(--s3);padding:2px 6px;border-radius:4px">${f.code}</span></td>
     <td><span class="badge badge-ok">Active</span></td>
@@ -1470,7 +1505,7 @@ function editFL(i){
   save(); renderSettFL(); toast('✅ Flavour updated');
 }
 function renderSettRMI(){
-  (document.getElementById('sett-rmi-tbl')||{innerHTML:''}).innerHTML =(S.rmItems||[]).map(i=>`<tr class="${i.status==='discontinued'?'disc':''}">
+  document.getElementById('sett-rmi-tbl').innerHTML=(S.rmItems||[]).map(i=>`<tr class="${i.status==='discontinued'?'disc':''}">
     <td><b>${i.name}</b></td><td>${i.category}</td><td>${i.unit}</td><td>${i.minStock}</td>
     <td><b>${rmiStock(i.id).toFixed(2)}</b></td>
     <td><span class="badge ${i.status==='discontinued'?'badge-out':'badge-ok'}">${i.status==='discontinued'?'Discontinued':'Active'}</span></td>
@@ -1493,7 +1528,7 @@ function editRMI(id){
   save(); renderSettRMI(); renderRM(); toast('✅ RM item updated');
 }
 function renderSettPPI(){
-  (document.getElementById('sett-ppi-tbl')||{innerHTML:''}).innerHTML =(S.ppItems||[]).map(i=>{
+  document.getElementById('sett-ppi-tbl').innerHTML=(S.ppItems||[]).map(i=>{
     const rm=(S.rmItems||[]).find(r=>r.id===i.madeFrom);
     return `<tr class="${i.status==='discontinued'?'disc':''}">
       <td><b>${i.name}</b></td><td>${i.type}</td><td>${rm?.name||'-'}</td><td>${i.minStock}</td>
@@ -2053,7 +2088,7 @@ function saveBMBOMInline(s1Id) {
 }
 
 function renderSettS1T(){
-  (document.getElementById('sett-s1t-tbl')||{innerHTML:''}).innerHTML =(S.sfg1Items||[]).map(i=>{
+  document.getElementById('sett-s1t-tbl').innerHTML=(S.sfg1Items||[]).map(i=>{
     const fl=(S.flavours||[]).find(f=>f.id===i.flavourId);
     return `<tr class="${i.status==='discontinued'?'disc':''}">
       <td><b>${i.name}</b></td><td>${fl?.brand||'-'}</td><td>${i.code}</td><td>${i.minStock}</td>
@@ -2084,7 +2119,7 @@ function renderSettBMI(){
 }
 
 function renderSettS2T(){
-  (document.getElementById('sett-s2t-tbl')||{innerHTML:''}).innerHTML =(S.sfg2Types||[]).map(t=>{
+  document.getElementById('sett-s2t-tbl').innerHTML=(S.sfg2Types||[]).map(t=>{
     const s1=(S.sfg1Items||[]).find(i=>i.id===t.s1Id);
     return `<tr class="${t.status==='discontinued'?'disc':''}">
       <td><b>${t.name}</b></td><td>${s1?.name||'-'}</td>
@@ -2101,7 +2136,7 @@ function renderSettS2T(){
   }).join('')||'<tr><td colspan="6" class="empty">No pouch types</td></tr>';
 }
 function renderSettSKU(){
-  (document.getElementById('sett-sku-tbl')||{innerHTML:''}).innerHTML =(S.skus||[]).map(s=>{
+  document.getElementById('sett-sku-tbl').innerHTML=(S.skus||[]).map(s=>{
     const fl=(S.flavours||[]).find(f=>f.id===s.flavourId);
     const s2=(S.sfg2Types||[]).find(t=>t.id===s.s2Id);
     return `<tr class="${s.status==='discontinued'?'disc':''}">
@@ -2120,7 +2155,7 @@ function renderSettSKU(){
   }).join('')||'<tr><td colspan="9" class="empty">No SKUs</td></tr>';
 }
 function renderSettPM(){
-  (document.getElementById('sett-pm-tbl')||{innerHTML:''}).innerHTML =(S.packingMaterials||[]).map(p=>`<tr class="${p.status==='discontinued'?'disc':''}">
+  document.getElementById('sett-pm-tbl').innerHTML=(S.packingMaterials||[]).map(p=>`<tr class="${p.status==='discontinued'?'disc':''}">
     <td><b>${p.name}</b></td><td>${p.type}</td><td style="font-size:11px;color:var(--mu)">${p.usedFor}</td>
     <td>${p.minStock||0}</td><td><b>${p.stock}</b></td>
     <td><span class="badge ${p.status==='discontinued'?'badge-out':'badge-ok'}">${p.status==='discontinued'?'Disc.':'Active'}</span></td>
@@ -2133,7 +2168,7 @@ function renderSettPM(){
   </tr>`).join('')||'<tr><td colspan="7" class="empty">No PM items</td></tr>';
 }
 function renderSettWS(){
-  (document.getElementById('sett-ws-tbl')||{innerHTML:''}).innerHTML =(S.wsTypes||[]).map(w=>{
+  document.getElementById('sett-ws-tbl').innerHTML=(S.wsTypes||[]).map(w=>{
     const s=(S.skus||[]).find(x=>x.id===w.skuId);
     return `<tr class="${w.status==='discontinued'?'disc':''}">
       <td><b>${w.name}</b></td><td>${s?.name||'-'}</td><td>${w.qtyPC} units</td>
@@ -2149,7 +2184,7 @@ function renderSettWS(){
   }).join('')||'<tr><td colspan="6" class="empty">No WS types</td></tr>';
 }
 function renderSettDist(){
-  (document.getElementById('sett-dist-tbl')||{innerHTML:''}).innerHTML =(S.distributors||[]).map(d=>`<tr>
+  document.getElementById('sett-dist-tbl').innerHTML=(S.distributors||[]).map(d=>`<tr>
     <td><b>${d.name}</b></td><td>${d.city}</td><td>${d.contact||d.phone||'-'}</td>
     <td class="admin-only" style="display:flex;gap:4px">
       <button class="btn btn-ghost btn-sm" onclick="editDist('${d.id}')">Edit</button>
@@ -2346,7 +2381,7 @@ function openPrintModal(type) {
   _printType=type;
   document.getElementById('print-title').textContent={batch:'🏷️ Batch Slip',stock:'📦 Stock Report',production:'📋 Production Report',dispatch:'🚚 Dispatch Note'}[type]||'Print';
   const fields=PRINT_FIELDS[type]||[];
-  document.getElementById('print-field-sel').innerHTML =fields.map(f=>`<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 10px;background:var(--s2);border-radius:6px"><input type="checkbox" id="pf-${f.k}" ${f.d?'checked':''}> ${f.l}</label>`).join('');
+  document.getElementById('print-field-sel').innerHTML=fields.map(f=>`<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:6px 10px;background:var(--s2);border-radius:6px"><input type="checkbox" id="pf-${f.k}" ${f.d?'checked':''}> ${f.l}</label>`).join('');
   const sel=document.getElementById('print-rec-sel');
   if(type==='batch'||type==='dispatch'){
     const txns=(S.transactions||[]).filter(t=>type==='batch'?['batchmix-prod','sfg2-prod','fg-prod','ws-prod','powder-prod'].includes(t.type):t.type==='dispatch').sort((a,b)=>b.ts-a.ts).slice(0,50);
@@ -2354,7 +2389,7 @@ function openPrintModal(type) {
     sel._data=txns;
     sel.parentElement.style.display='';
   } else { sel.parentElement.style.display='none'; }
-  document.getElementById('print-preview-area').innerHTML ='';
+  document.getElementById('print-preview-area').innerHTML='';
   openModal('m-print');
 }
 
@@ -2399,7 +2434,7 @@ function updatePrintPreview() {
     const cols=(PRINT_FIELDS.production||[]).filter(f=>fields[f.k]);
     html=`<div class="slip"><div class="slip-header"><b>KRAVINS® — Production Report</b><br><span style="font-size:11px;color:#666">Printed: ${today()}</span></div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr>${cols.map(c=>`<th style="padding:4px;text-align:left;border-bottom:1px solid #ddd">${c.l}</th>`).join('')}</tr></thead><tbody>${txns.map(t=>`<tr>${cols.map(c=>`<td style="padding:4px;border-bottom:1px solid #eee">${t[c.k]||''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
-  document.getElementById('print-preview-area').innerHTML =html;
+  document.getElementById('print-preview-area').innerHTML=html;
 }
 
 function doPrint() {
@@ -3903,7 +3938,17 @@ function printReport() {
   w.document.close(); w.print();
 }
 
-// movement links added inline in renderRM rows
+// ── Add movement links to stock pages ──
+const _origRenderRM = renderRM;
+function renderRM() {
+  _origRenderRM();
+  setTimeout(()=>{
+    document.querySelectorAll('#rm-tbl tr[data-id]').forEach(tr=>{
+      const id=tr.dataset.id; const item=(S.rmItems||[]).find(i=>i.id===id);
+      if(item){ tr.style.cursor='pointer'; tr.onclick=()=>showMovement(id,'rmItem',item.name); }
+    });
+  },100);
+}
 
 
 </script>
